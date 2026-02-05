@@ -14,11 +14,210 @@ import {
   Settings,
   UserPlus,
   FileText,
+  X,
+  Loader
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
+
+// Create User Modal Component
+const CreateUserModal = ({ onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    name: "",
+    username: "",
+    email: "",
+    password: "",
+    role: "student",
+    department: "",
+    year: "1st Year",
+    isAdmin: false,
+    phoneNumber: ""
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Basic validation
+    if (!formData.name || !formData.username || !formData.password || !formData.department) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await apiService.createUser(formData);
+      toast.success("User created successfully!");
+      onSuccess();
+      onClose();
+    } catch (error) {
+      console.error("Create user error:", error);
+      toast.error(error.message || "Failed to create user");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+      >
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-gray-900">Create New User</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                placeholder="dbu12345678"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
+              <select
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select Department</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Business">Business</option>
+                <option value="Medicine">Medicine</option>
+                <option value="Agriculture">Agriculture</option>
+                <option value="Education">Education</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+              <select
+                value={formData.year}
+                onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+                <option value="5th Year">5th Year</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <select
+                value={formData.role}
+                onChange={(e) => {
+                  const newRole = e.target.value;
+                  setFormData({
+                    ...formData,
+                    role: newRole,
+                    isAdmin: newRole === 'admin' // Auto-set isAdmin if role is admin
+                  });
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="student">Student</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <input
+                type="tel"
+                value={formData.phoneNumber}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 pt-2">
+            <input
+              type="checkbox"
+              id="isAdmin"
+              checked={formData.isAdmin}
+              onChange={(e) => setFormData({ ...formData, isAdmin: e.target.checked })}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="isAdmin" className="text-sm text-gray-700">
+              Grant System Administrator Privileges
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t mt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              {loading ? (
+                <>
+                  <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create User'
+              )}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+};
 
 export function AdminDashboard() {
   const { user } = useAuth();
@@ -34,6 +233,9 @@ export function AdminDashboard() {
   const [selectedTimeframe, setSelectedTimeframe] = useState("7d");
   const [recentActivity, setRecentActivity] = useState([]);
 
+  // Modal states
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+
   useEffect(() => {
     fetchDashboardData();
   }, [selectedTimeframe]);
@@ -41,7 +243,7 @@ export function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch all stats in parallel
       const [
         userStats,
@@ -99,7 +301,7 @@ export function AdminDashboard() {
       description: 'Add new student or admin',
       icon: UserPlus,
       color: 'bg-blue-500',
-      action: () => toast.info('User creation modal would open here')
+      action: () => setShowCreateUserModal(true)
     },
     {
       title: 'System Settings',
@@ -160,7 +362,7 @@ export function AdminDashboard() {
             <option value="90d">Last 90 days</option>
           </select>
 
-          <button 
+          <button
             onClick={handleExportReport}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
             <Download className="w-4 h-4 mr-2" />
@@ -293,11 +495,10 @@ export function AdminDashboard() {
           <div className="space-y-4">
             {recentActivity.map((activity) => (
               <div key={activity.id} className="flex items-start space-x-3">
-                <div className={`w-2 h-2 mt-2 rounded-full ${
-                  activity.type === 'user' ? 'bg-blue-500' :
-                  activity.type === 'complaint' ? 'bg-orange-500' :
-                  activity.type === 'club' ? 'bg-purple-500' : 'bg-green-500'
-                }`}></div>
+                <div className={`w-2 h-2 mt-2 rounded-full ${activity.type === 'user' ? 'bg-blue-500' :
+                    activity.type === 'complaint' ? 'bg-orange-500' :
+                      activity.type === 'club' ? 'bg-purple-500' : 'bg-green-500'
+                  }`}></div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">{activity.message}</p>
                   <p className="text-xs text-gray-500">{activity.time}</p>
@@ -372,6 +573,14 @@ export function AdminDashboard() {
           </div>
         </div>
       </motion.div>
+
+      {/* Modals */}
+      {showCreateUserModal && (
+        <CreateUserModal
+          onClose={() => setShowCreateUserModal(false)}
+          onSuccess={() => fetchDashboardData()}
+        />
+      )}
     </div>
   );
 }

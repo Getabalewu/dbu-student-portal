@@ -12,8 +12,8 @@ export const Home = () => {
 	const { user } = useAuth();
 	const [announcements, setAnnouncements] = useState([]);
 	const [stats, setStats] = useState({
-		activeStudents: "0",
-		clubs: "0",
+		activeStudents: "10600",
+		clubs: "10",
 		serviceBranches: "10",
 		satisfactionRate: "95%"
 	});

@@ -7,6 +7,8 @@ import { Layout } from "./components/Layout/Layout";
 import { ProtectedRoute } from "./components/Auth/ProtectedRoute";
 import { AdminRoute } from "./components/Auth/AdminRoute";
 import { LoginForm } from "./components/Auth/LoginForm";
+import { ForgotPassword } from "./components/Auth/ForgotPassword";
+import { ResetPassword } from "./components/Auth/ResetPassword";
 import { Home } from "./components/Pages/Home";
 import { Clubs } from "./components/Pages/Clubs";
 import { Elections } from "./components/Pages/Elections";
@@ -41,7 +43,7 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
-          
+
           {/* Auth Route */}
           <Route
             path="/login"
@@ -51,6 +53,18 @@ function AppContent() {
               ) : (
                 <LoginForm />
               )
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />
+            }
+          />
+          <Route
+            path="/reset-password/:resetToken"
+            element={
+              user ? <Navigate to="/dashboard" replace /> : <ResetPassword />
             }
           />
 
@@ -122,15 +136,15 @@ function AppContent() {
           />
 
           {/* Fallback Route */}
-          <Route 
-            path="*" 
+          <Route
+            path="*"
             element={
               user ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />
-            } 
+            }
           />
         </Routes>
       </Layout>
-      
+
       <Toaster
         position="top-right"
         toastOptions={{

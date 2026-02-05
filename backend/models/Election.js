@@ -30,8 +30,7 @@ const candidateSchema = new mongoose.Schema({
     trim: true
   },
   profileImage: {
-    type: String,
-    default: 'https://images.pexels.com/photos/3763188/pexels-photo-3763188.jpeg?auto=compress&cs=tinysrgb&w=400'
+    type: String
   },
   platform: [String],
   biography: {
@@ -134,9 +133,9 @@ electionSchema.index({ endDate: 1 });
 electionSchema.index({ 'voters.user': 1 });
 
 // Update status based on dates
-electionSchema.pre('save', function(next) {
+electionSchema.pre('save', function (next) {
   const now = new Date();
-  
+
   if (this.startDate > now) {
     this.status = 'upcoming';
   } else if (this.startDate <= now && this.endDate > now) {
@@ -144,25 +143,25 @@ electionSchema.pre('save', function(next) {
   } else if (this.endDate <= now) {
     this.status = 'completed';
   }
-  
+
   next();
 });
 
 // Virtual for turnout percentage
-electionSchema.virtual('turnoutPercentage').get(function() {
+electionSchema.virtual('turnoutPercentage').get(function () {
   if (this.eligibleVoters === 0) return 0;
   return ((this.totalVotes / this.eligibleVoters) * 100).toFixed(2);
 });
 
 // Method to check if user has voted
-electionSchema.methods.hasUserVoted = function(userId) {
+electionSchema.methods.hasUserVoted = function (userId) {
   return this.voters.some(voter => voter.user.toString() === userId.toString());
 };
 
 // Method to get winner
-electionSchema.methods.getWinner = function() {
+electionSchema.methods.getWinner = function () {
   if (this.candidates.length === 0) return null;
-  
+
   return this.candidates.reduce((winner, candidate) => {
     return candidate.votes > winner.votes ? candidate : winner;
   });

@@ -1,7 +1,7 @@
 const express = require('express');
 const Club = require('../models/Club');
 const User = require('../models/User');
-const { protect, adminOnly, optionalAuth } = require('../middleware/auth');
+const { protect, adminOnly, optionalAuth, clubLeader } = require('../middleware/auth');
 const { validateClub } = require('../middleware/validation');
 
 const router = express.Router();
@@ -19,7 +19,7 @@ router.get('/', optionalAuth, async (req, res) => {
 
     // Build query
     let query = {};
-    
+
     // Only show active clubs to non-admin users
     if (!req.user || !req.user.isAdmin) {
       query.status = 'active';
@@ -28,7 +28,7 @@ router.get('/', optionalAuth, async (req, res) => {
     }
 
     if (category) query.category = category;
-    
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -136,8 +136,8 @@ router.post('/', protect, adminOnly, validateClub, async (req, res) => {
     console.log('Received club data:', req.body);
     console.log('User creating club:', req.user);
     // Check if club name already exists
-    const existingClub = await Club.findOne({ 
-      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+    const existingClub = await Club.findOne({
+      name: { $regex: new RegExp(`^${name}$`, 'i') }
     });
     if (existingClub) {
       return res.status(409).json({
@@ -181,7 +181,8 @@ router.post('/', protect, adminOnly, validateClub, async (req, res) => {
 // @desc    Update club
 // @route   PUT /api/clubs/:id
 // @access  Private/Admin
-router.put('/:id', protect, adminOnly, async (req, res) => {
+// @access  Private/Club Leader
+router.put('/:id', protect, clubLeader, async (req, res) => {
   try {
     const { name, description, category, image, contactEmail, meetingSchedule, requirements, status } = req.body;
 
@@ -195,7 +196,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 
     // Check if new name conflicts with existing club
     if (name && name !== club.name) {
-      const existingClub = await Club.findOne({ 
+      const existingClub = await Club.findOne({
         name: { $regex: new RegExp(`^${name}$`, 'i') },
         _id: { $ne: req.params.id }
       });
@@ -299,10 +300,10 @@ router.post('/:id/join', protect, async (req, res) => {
     }
 
     // Check if user is already a member
-    const existingMember = club.members.find(member => 
+    const existingMember = club.members.find(member =>
       member.user.toString() === req.user._id.toString()
     );
-    
+
     if (existingMember) {
       if (existingMember.status === 'pending') {
         return res.status(400).json({
@@ -347,7 +348,8 @@ router.post('/:id/join', protect, async (req, res) => {
 // @desc    Approve club member
 // @route   PATCH /api/clubs/:id/members/:memberId/approve
 // @access  Private/Admin
-router.patch('/:id/members/:memberId/approve', protect, adminOnly, async (req, res) => {
+// @access  Private/Club Leader
+router.patch('/:id/members/:memberId/approve', protect, clubLeader, async (req, res) => {
   try {
     const club = await Club.findById(req.params.id);
     if (!club) {
@@ -390,7 +392,8 @@ router.patch('/:id/members/:memberId/approve', protect, adminOnly, async (req, r
 // @desc    Reject club member
 // @route   PATCH /api/clubs/:id/members/:memberId/reject
 // @access  Private/Admin
-router.patch('/:id/members/:memberId/reject', protect, adminOnly, async (req, res) => {
+// @access  Private/Club Leader
+router.patch('/:id/members/:memberId/reject', protect, clubLeader, async (req, res) => {
   try {
     const club = await Club.findById(req.params.id);
     if (!club) {
@@ -427,7 +430,8 @@ router.patch('/:id/members/:memberId/reject', protect, adminOnly, async (req, re
 // @desc    Get club join requests
 // @route   GET /api/clubs/:id/join-requests
 // @access  Private/Admin
-router.get('/:id/join-requests', protect, adminOnly, async (req, res) => {
+// @access  Private/Club Leader
+router.get('/:id/join-requests', protect, clubLeader, async (req, res) => {
   try {
     const club = await Club.findById(req.params.id)
       .populate('members.user', 'name username email profileImage');
@@ -469,10 +473,10 @@ router.post('/:id/leave', protect, async (req, res) => {
     }
 
     // Check if user is a member
-    const memberIndex = club.members.findIndex(member => 
+    const memberIndex = club.members.findIndex(member =>
       member.user.toString() === req.user._id.toString()
     );
-    
+
     if (memberIndex === -1) {
       return res.status(400).json({
         success: false,

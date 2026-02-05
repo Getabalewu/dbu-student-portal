@@ -177,9 +177,58 @@ const optionalAuth = async (req, res, next) => {
 	next();
 };
 
+// Club Leader access (for specific club)
+const clubLeader = async (req, res, next) => {
+	try {
+		if (!req.user) {
+			return res.status(401).json({
+				success: false,
+				message: "Not authorized",
+			});
+		}
+
+		// Admins always have access
+		if (req.user.isAdmin || req.user.role === 'admin') {
+			return next();
+		}
+
+		const Club = require("../models/Club");
+		const club = await Club.findById(req.params.id);
+
+		if (!club) {
+			return res.status(404).json({
+				success: false,
+				message: "Club not found"
+			});
+		}
+
+		// Check if user is in leadership
+		const isLeader =
+			(club.leadership.president && club.leadership.president.toString() === req.user._id.toString()) ||
+			(club.leadership.vicePresident && club.leadership.vicePresident.toString() === req.user._id.toString()) ||
+			(club.leadership.secretary && club.leadership.secretary.toString() === req.user._id.toString());
+
+		if (isLeader) {
+			next();
+		} else {
+			res.status(403).json({
+				success: false,
+				message: "Access denied. Club leadership privileges required."
+			});
+		}
+	} catch (error) {
+		console.error("Club leader check error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Server error checking permissions"
+		});
+	}
+};
+
 module.exports = {
 	protect,
 	adminOnly,
 	authorize,
 	optionalAuth,
+	clubLeader
 };

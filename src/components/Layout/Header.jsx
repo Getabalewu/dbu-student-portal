@@ -23,22 +23,23 @@ export function Header() {
 		...(user
 			? []
 			: [
-					{ name: "Home", href: "/" },
-					{ name: "About", href: "/about" },
-					{ name: "Contact", href: "/contact" },
-			  ]),
+				{ name: "Home", href: "/" },
+				{ name: "About", href: "/about" },
+				{ name: "Contact", href: "/contact" },
+			]),
 	];
 
 	const protectedNavigation = [
 		...(user
 			? [
-					{ name: "Dashboard", href: "/dashboard" },
-					{ name: "Clubs", href: "/clubs", badge: notifications.clubs },
-					{ name: "Elections", href: "/elections", badge: notifications.elections },
-					{ name: "Services", href: "/services" },
-					{ name: "Latest", href: "/latest", badge: notifications.posts },
-					{ name: "Complaints", href: "/complaints", badge: notifications.complaints },
-			  ]
+				{ name: "Dashboard", href: "/dashboard" },
+				{ name: "Clubs", href: "/clubs", badge: notifications.clubs },
+				{ name: "Elections", href: "/elections", badge: notifications.elections },
+				{ name: "Services", href: "/services" },
+				{ name: "Latest", href: "/latest", badge: notifications.posts },
+				{ name: "Complaints", href: "/complaints", badge: notifications.complaints },
+				{ name: "Contact", href: "/contact" },
+			]
 			: []),
 	];
 

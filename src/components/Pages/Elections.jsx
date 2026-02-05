@@ -105,7 +105,7 @@ export function Elections() {
         toast.error("Image size must be less than 5MB");
         return;
       }
-      
+
       const reader = new FileReader();
       reader.onload = (e) => {
         setNewCandidate({
@@ -120,7 +120,7 @@ export function Elections() {
 
   const handleAddCandidate = (e) => {
     e.preventDefault();
-    
+
     if (!newCandidate.name || !newCandidate.department || !newCandidate.academicYear) {
       toast.error("Candidate name, department, and academic year are required");
       return;
@@ -133,7 +133,7 @@ export function Elections() {
       year: newCandidate.year || newCandidate.academicYear,
       academicYear: newCandidate.academicYear,
       position: newCandidate.position,
-      profileImage: newCandidate.profileImagePreview || "https://images.pexels.com/photos/3763188/pexels-photo-3763188.jpeg?auto=compress&cs=tinysrgb&w=400",
+      profileImage: newCandidate.profileImagePreview || "",
       platform: newCandidate.platform ? newCandidate.platform.split(',').map(p => p.trim()) : ["Student Welfare", "Academic Excellence"],
       biography: newCandidate.biography || `Candidate for ${newCandidate.position}`,
       votes: 0,
@@ -171,7 +171,7 @@ export function Elections() {
 
   const handleCreateElection = async (e) => {
     e.preventDefault();
-    
+
     if (!user?.isAdmin) {
       toast.error("Only admins can create elections");
       return;
@@ -210,13 +210,13 @@ export function Elections() {
       };
 
       console.log('Creating election with data:', electionData);
-      
+
       const response = await apiService.createElection(electionData);
       console.log('Create election response:', response);
-      
+
       await fetchElections();
       toast.success("Election created successfully!");
-      
+
       // Reset form
       setNewElection({
         title: "",
@@ -358,7 +358,7 @@ export function Elections() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Admin Controls */}
-        {user?.isAdmin && (
+        {user?.isAdmin && user?.username !== "dbu10101040" && (
           <div className="mb-8 bg-white rounded-xl p-6 shadow-sm">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">
@@ -480,7 +480,7 @@ export function Elections() {
                   <h3 className="text-lg font-medium text-gray-900 mb-4">
                     Add Candidates ({newElection.candidates.length})
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -539,10 +539,10 @@ export function Elections() {
                       <select
                         value={newCandidate.academicYear}
                         onChange={(e) =>
-                          setNewCandidate({ 
-                            ...newCandidate, 
+                          setNewCandidate({
+                            ...newCandidate,
                             academicYear: e.target.value,
-                            year: e.target.value 
+                            year: e.target.value
                           })
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
@@ -574,7 +574,7 @@ export function Elections() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Profile Image
+                        Profile Image (Optional)
                       </label>
                       <div className="space-y-2">
                         <input
@@ -688,11 +688,10 @@ export function Elections() {
               <button
                 key={tab}
                 onClick={() => setSelectedTab(tab)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  selectedTab === tab
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}>
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${selectedTab === tab
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}>
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
@@ -715,7 +714,7 @@ export function Elections() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                  
+
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -733,7 +732,7 @@ export function Elections() {
                         {getStatusIcon(election.status)}
                         <span className="ml-1 capitalize">{election.status}</span>
                       </span>
-                      {user?.isAdmin && (
+                      {user?.isAdmin && user?.username !== "dbu10101040" && (
                         <button
                           onClick={() => handleDeleteElection(election._id || election.id)}
                           className="text-red-600 hover:text-red-700 p-1">
@@ -782,9 +781,9 @@ export function Elections() {
                         {election.candidates.slice(0, 5).map((candidate, idx) => (
                           <img
                             key={idx}
-                            src={candidate.profileImage || "https://images.pexels.com/photos/3763188/pexels-photo-3763188.jpeg?auto=compress&cs=tinysrgb&w=400"}
+                            src={candidate.profileImage || ""}
                             alt={candidate.name}
-                            className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                            className={`w-8 h-8 rounded-full border-2 border-white object-cover ${!candidate.profileImage ? "bg-gray-200" : ""}`}
                           />
                         ))}
                         {election.candidates.length > 5 && (
@@ -803,11 +802,10 @@ export function Elections() {
                         whileHover={{ scale: votedElections.has(election._id || election.id) ? 1 : 1.02 }}
                         whileTap={{ scale: votedElections.has(election._id || election.id) ? 1 : 0.98 }}
                         onClick={() => setSelectedElection(election)}
-                        className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                          votedElections.has(election._id || election.id)
-                            ? "bg-green-100 text-green-700 cursor-default"
-                            : "bg-blue-600 text-white hover:bg-blue-700"
-                        }`}
+                        className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${votedElections.has(election._id || election.id)
+                          ? "bg-green-100 text-green-700 cursor-default"
+                          : "bg-blue-600 text-white hover:bg-blue-700"
+                          }`}
                         disabled={votedElections.has(election._id || election.id)}>
                         {votedElections.has(election._id || election.id) ? (
                           <>
@@ -832,7 +830,7 @@ export function Elections() {
                       View Details
                     </motion.button>
 
-                    {election.status === "completed" && user?.isAdmin && !election.resultsPublished && (
+                    {election.status === "completed" && user?.isAdmin && user?.username !== "dbu10101040" && !election.resultsPublished && (
                       <button
                         onClick={() => announceResults(election._id || election.id)}
                         className="bg-yellow-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-yellow-700 transition-colors">
@@ -851,7 +849,7 @@ export function Elections() {
                   No elections found
                 </h3>
                 <p className="text-gray-600">
-                  {selectedTab === "all" 
+                  {selectedTab === "all"
                     ? "No elections have been created yet"
                     : `No ${selectedTab} elections at this time`
                   }
@@ -917,9 +915,9 @@ export function Elections() {
                         className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
                         <div className="flex items-start space-x-4">
                           <img
-                            src={candidate.profileImage || "https://images.pexels.com/photos/3763188/pexels-photo-3763188.jpeg?auto=compress&cs=tinysrgb&w=400"}
+                            src={candidate.profileImage || ""}
                             alt={candidate.name}
-                            className="w-16 h-16 rounded-full object-cover"
+                            className={`w-16 h-16 rounded-full object-cover ${!candidate.profileImage ? "bg-gray-200" : ""}`}
                           />
                           <div className="flex-1">
                             <h4 className="text-lg font-semibold text-gray-900">
@@ -929,7 +927,7 @@ export function Elections() {
                               {candidate.department} - {candidate.academicYear || candidate.year}
                             </p>
                             <p className="text-sm text-gray-500 mb-2">{candidate.position}</p>
-                            
+
                             {candidate.platform && candidate.platform.length > 0 && (
                               <div className="mt-2">
                                 <p className="text-sm font-medium text-gray-700 mb-1">Platform:</p>
@@ -949,7 +947,7 @@ export function Elections() {
                               <p className="text-sm text-gray-600 mt-2">{candidate.biography}</p>
                             )}
                           </div>
-                          
+
                           <div className="text-right">
                             <p className="text-2xl font-bold text-gray-900">
                               {(candidate.votes || 0).toLocaleString()}
@@ -962,38 +960,37 @@ export function Elections() {
                             )}
                           </div>
                         </div>
-                        
+
                         {/* Only show vote button for students who haven't voted yet */}
                         {selectedElection.status === "active" &&
-                         !user?.isAdmin && user && (
-                          votedElections.has(selectedElection._id || selectedElection.id) ? (
-                            <div className="w-full mt-4 py-2 px-4 rounded-lg bg-gray-100 text-gray-600 text-center font-medium">
-                              You have already voted in this election
-                            </div>
-                          ) : (
-                            <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() =>
-                                handleVote(selectedElection._id || selectedElection.id, candidate._id || candidate.id)
-                              }
-                              disabled={votingInProgress}
-                              className={`w-full mt-4 py-2 px-4 rounded-lg font-medium transition-colors ${
-                                votingInProgress
+                          !user?.isAdmin && user && (
+                            votedElections.has(selectedElection._id || selectedElection.id) ? (
+                              <div className="w-full mt-4 py-2 px-4 rounded-lg bg-gray-100 text-gray-600 text-center font-medium">
+                                You have already voted in this election
+                              </div>
+                            ) : (
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() =>
+                                  handleVote(selectedElection._id || selectedElection.id, candidate._id || candidate.id)
+                                }
+                                disabled={votingInProgress}
+                                className={`w-full mt-4 py-2 px-4 rounded-lg font-medium transition-colors ${votingInProgress
                                   ? "bg-gray-400 text-gray-600 cursor-not-allowed"
                                   : "bg-blue-600 text-white hover:bg-blue-700"
-                              }`}>
-                              {votingInProgress ? "Processing..." : `Vote for ${candidate.name}`}
-                            </motion.button>
-                          )
-                        )}
+                                  }`}>
+                                {votingInProgress ? "Processing..." : `Vote for ${candidate.name}`}
+                              </motion.button>
+                            )
+                          )}
                       </div>
                     ))
                   ) : (
                     <p className="text-gray-500 text-center py-4">No candidates added yet</p>
                   )}
                 </div>
-                
+
                 {/* Admin: Show Voters List */}
                 {user?.isAdmin && selectedElection.voters && selectedElection.voters.length > 0 && (
                   <div className="mt-6 p-4 bg-blue-50 rounded-lg">

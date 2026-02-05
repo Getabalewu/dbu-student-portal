@@ -9,12 +9,12 @@ const router = express.Router();
 router.post('/direct-fix-admins', async (req, res) => {
   try {
     const adminUsernames = ['dbu10101010', 'dbu10101020', 'dbu10101030', 'dbu10101040'];
-    
+
     // Direct MongoDB update
     const result = await User.updateMany(
       { username: { $in: adminUsernames } },
-      { 
-        $set: { 
+      {
+        $set: {
           isAdmin: true,
           role: 'admin',
           isActive: true,
@@ -24,17 +24,17 @@ router.post('/direct-fix-admins', async (req, res) => {
         }
       }
     );
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       message: `Updated ${result.modifiedCount} admin users`,
-      result 
+      result
     });
   } catch (error) {
     console.error('Direct fix admins error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: 'Server error' 
+      message: 'Server error'
     });
   }
 });
@@ -43,12 +43,12 @@ router.post('/direct-fix-admins', async (req, res) => {
 router.post('/fix-admin', async (req, res) => {
   try {
     const { username, password } = req.body;
-    
+
     const user = await User.findOne({ username });
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'User not found' 
+        message: 'User not found'
       });
     }
 
@@ -65,11 +65,11 @@ router.post('/fix-admin', async (req, res) => {
     user.isLocked = false;
     user.loginAttempts = 0;
     user.lockUntil = undefined;
-    
+
     await user.save();
 
-    return res.json({ 
-      success: true, 
+    return res.json({
+      success: true,
       message: `Admin privileges granted to ${username}`,
       user: {
         username: user.username,
@@ -81,9 +81,9 @@ router.post('/fix-admin', async (req, res) => {
     });
   } catch (error) {
     console.error('Fix admin error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: 'Server error' 
+      message: 'Server error'
     });
   }
 });
@@ -135,31 +135,31 @@ router.post('/nuclear-recreate-admins', async (req, res) => {
     ];
 
     const results = [];
-    
+
     for (const adminData of adminUsers) {
       // Delete existing user
       await User.deleteOne({ username: adminData.username });
-      
+
       // Create new user with hashed password
       const hashedPassword = await bcrypt.hash(adminData.password, 12);
       const user = await User.create({
         ...adminData,
         password: hashedPassword
       });
-      
+
       results.push({ username: adminData.username, status: 'recreated' });
     }
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       message: 'All admin accounts recreated',
-      results 
+      results
     });
   } catch (error) {
     console.error('Nuclear recreate error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: 'Server error' 
+      message: 'Server error'
     });
   }
 });
@@ -168,7 +168,7 @@ router.post('/nuclear-recreate-admins', async (req, res) => {
 router.post('/fix-all-admins', async (req, res) => {
   try {
     const adminUsernames = ['dbu10101010', 'dbu10101020', 'dbu10101030', 'dbu10101040'];
-    
+
     const results = [];
     for (const username of adminUsernames) {
       const user = await User.findOne({ username });
@@ -185,17 +185,17 @@ router.post('/fix-all-admins', async (req, res) => {
         results.push({ username, status: 'not found' });
       }
     }
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       message: 'All admin accounts updated',
-      results 
+      results
     });
   } catch (error) {
     console.error('Fix all admins error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: 'Server error' 
+      message: 'Server error'
     });
   }
 });
@@ -206,7 +206,7 @@ router.get('/debug/admins', async (req, res) => {
     const adminUsers = await User.find({
       username: { $in: ['dbu10101010', 'dbu10101020', 'dbu10101030', 'dbu10101040'] }
     }).select('username email isAdmin role isActive isLocked');
-    
+
     return res.json({
       success: true,
       count: adminUsers.length,
@@ -214,9 +214,9 @@ router.get('/debug/admins', async (req, res) => {
     });
   } catch (error) {
     console.error('Debug admins error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: 'Server error' 
+      message: 'Server error'
     });
   }
 });
@@ -225,11 +225,11 @@ router.get('/debug/admins', async (req, res) => {
 router.get('/check-user/:username', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username });
-    
+
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
@@ -246,9 +246,9 @@ router.get('/check-user/:username', async (req, res) => {
     });
   } catch (error) {
     console.error('Check user error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: 'Server error' 
+      message: 'Server error'
     });
   }
 });
@@ -257,27 +257,91 @@ router.get('/check-user/:username', async (req, res) => {
 router.post('/reset-admin-password', async (req, res) => {
   try {
     const { username, newPassword } = req.body;
-    
+
     const user = await User.findOne({ username });
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'User not found' 
+        message: 'User not found'
       });
     }
 
     user.password = newPassword;
     await user.save();
 
-    return res.json({ 
-      success: true, 
-      message: `Password reset for ${username}` 
+    return res.json({
+      success: true,
+      message: `Password reset for ${username}`
     });
   } catch (error) {
     console.error('Reset password error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: 'Server error' 
+      message: 'Server error'
+    });
+  }
+});
+// @desc    Create new user (admin)
+// @route   POST /api/users
+// @access  Private/Admin
+router.post('/', protect, adminOnly, async (req, res) => {
+  try {
+    const { name, username, email, password, role, department, year, isAdmin, phoneNumber } = req.body;
+
+    // Check if user exists
+    const userExists = await User.findOne({
+      $or: [{ username }, { email }]
+    });
+
+    if (userExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this username or email'
+      });
+    }
+
+    // Create user with provided fields
+    const user = await User.create({
+      name,
+      username,
+      email,
+      password, // Will be hashed by pre-save hook
+      role: role || 'student',
+      department,
+      year,
+      isAdmin: isAdmin || false,
+      phoneNumber,
+      isActive: true, // Default to active when created by admin
+      studentId: username // Usually same as username for students
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        year: user.year,
+        isAdmin: user.isAdmin
+      }
+    });
+  } catch (error) {
+    console.error('Create user error:', error);
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: messages
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: 'Server error creating user'
     });
   }
 });
@@ -295,7 +359,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
 
     // Build query
     let query = {};
-    
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -493,7 +557,7 @@ router.get('/stats/overview', protect, adminOnly, async (req, res) => {
     // Recent registrations (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const recentRegistrations = await User.countDocuments({
       createdAt: { $gte: thirtyDaysAgo }
     });

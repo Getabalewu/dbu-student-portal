@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { Eye, EyeOff, User, Lock, KeyRound } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { motion } from "framer-motion";
@@ -58,10 +59,9 @@ export function LoginForm() {
         return;
       }
 
-      if (!validatePassword(formData.password)) {
-        toast.error(
-          "Password must be at least 8 characters with uppercase, lowercase, digit, and symbol"
-        );
+      // Don't validate password format during login - just check if it's not empty
+      if (!formData.password || formData.password.length < 1) {
+        toast.error("Please enter your password");
         setIsLoading(false);
         return;
       }
@@ -408,16 +408,13 @@ export function LoginForm() {
           {/* Footer */}
           <div className="flex items-center justify-between">
             {!showRegister && (
-              <button
-                type="button"
-                onClick={() =>
-                  toast.info("Please contact admin for password reset")
-                }
+              <Link
+                to="/forgot-password"
                 className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center"
               >
                 <KeyRound className="w-4 h-4 mr-1" />
                 Forgot Password?
-              </button>
+              </Link>
             )}
             <button
               type="button"

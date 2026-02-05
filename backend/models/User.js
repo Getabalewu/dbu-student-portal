@@ -93,7 +93,9 @@ const userSchema = new mongoose.Schema(
 		address: {
 			type: String,
 			trim: true
-		}
+		},
+		resetPasswordToken: String,
+		resetPasswordExpire: Date,
 	},
 	{
 		timestamps: true,

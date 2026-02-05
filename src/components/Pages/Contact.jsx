@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { apiService } from "../../services/api";
 
-export  function Contact() {
+export function Contact() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -33,7 +33,7 @@ export  function Contact() {
     {
       icon: Phone,
       title: "Phone",
-      value: "+251-11-XXX-XXXX",
+      value: "+251-91-AAA-AAAA",
       description: "Call us during office hours",
     },
     {
@@ -79,7 +79,7 @@ export  function Contact() {
         setIsSubmitting(true);
         await apiService.submitContactForm(formData);
         toast.success("Your message has been sent successfully!");
-        
+
         // Reset form
         setFormData({
           name: "",
@@ -381,22 +381,17 @@ export  function Contact() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 shadow-sm">
-            <div className="bg-gray-200 rounded-xl h-96 flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">
-                  Interactive map would be placed here
-                </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Debre Berhan University
-                  <br />
-                  Student Union Building, Room 201
-                  <br />
-                  Debre Berhan, Ethiopia
-                </p>
-              </div>
-            </div>
+          <div className="bg-white rounded-2xl p-4 shadow-sm h-[500px] overflow-hidden">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1180.9741364939734!2d39.52099643589526!3d9.656611262809099!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1649bd7ddc38f2c3%3A0x57eb279f2d20f606!2s09%20School%20of%20Computing%2C%20Debre%20Birhan!5e1!3m2!1sen!2set!4v1769932890947!5m2!1sen!2set"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Debre Berhan University Location"
+            />
           </div>
         </div>
       </section>

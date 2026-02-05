@@ -61,7 +61,7 @@ export function Clubs() {
       setLoading(true);
       const response = await apiService.getClubs();
       console.log('Clubs API response:', response);
-      
+
       // Handle different response structures
       let clubsData = [];
       if (Array.isArray(response)) {
@@ -73,7 +73,7 @@ export function Clubs() {
       } else if (response.success && response.clubs) {
         clubsData = response.clubs;
       }
-      
+
       setClubs(clubsData);
     } catch (error) {
       console.error("Failed to fetch clubs:", error);
@@ -98,14 +98,14 @@ export function Clubs() {
       toast.error("Please login to join clubs");
       return;
     }
-    
+
     if (user.isAdmin) {
       // Show club details for admin instead of join form
       setSelectedClubDetails(club);
       setShowClubDetails(true);
       return;
     }
-    
+
     setSelectedClub(club);
     setJoinFormData({
       fullName: user.name || "",
@@ -182,7 +182,7 @@ export function Clubs() {
         toast.error("Image size must be less than 5MB");
         return;
       }
-      
+
       const reader = new FileReader();
       reader.onload = (e) => {
         setNewClub({
@@ -197,7 +197,7 @@ export function Clubs() {
 
   const handleCreateClub = async (e) => {
     e.preventDefault();
-    
+
     if (!user?.isAdmin) {
       toast.error("Only admins can create clubs");
       return;
@@ -214,7 +214,7 @@ export function Clubs() {
         description: newClub.description.trim(),
         category: newClub.category,
         founded: new Date().getFullYear().toString(),
-        image: newClub.imagePreview || "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=400",
+        image: newClub.imagePreview || "",
         contactEmail: newClub.contactEmail.trim(),
         contactPhone: newClub.contactPhone.trim(),
         website: newClub.website.trim(),
@@ -224,13 +224,13 @@ export function Clubs() {
       };
 
       console.log('Creating club with data:', clubData);
-      
+
       const response = await apiService.createClub(clubData);
       console.log('Create club response:', response);
-      
+
       await fetchClubs(); // Refresh the clubs list
       toast.success("Club created successfully!");
-      
+
       // Reset form
       setNewClub({
         name: "",
@@ -253,7 +253,7 @@ export function Clubs() {
   };
 
   const handleRemoveMember = async (clubId, memberId) => {
-    if (!user?.isAdmin) {
+    if (!user?.isAdmin && user?.username !== "dbu10101040") {
       toast.error("Only admins can remove members");
       return;
     }
@@ -266,7 +266,7 @@ export function Clubs() {
       // For now, we'll use the reject endpoint to remove the member
       await apiService.rejectClubMember(clubId, memberId);
       toast.success("Member removed successfully!");
-      
+
       // Refresh club details
       const updatedClub = await apiService.getClub(clubId);
       setSelectedClubDetails(updatedClub);
@@ -320,7 +320,7 @@ export function Clubs() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Admin Controls */}
-        {user?.isAdmin && (
+        {user?.isAdmin && user?.username !== "dbu10101040" && (
           <div className="mb-8 bg-white rounded-xl p-6 shadow-sm">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">
@@ -484,7 +484,7 @@ export function Clubs() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Club Image
+                    Club Image (Optional)
                   </label>
                   <div className="space-y-2">
                     <input
@@ -548,11 +548,10 @@ export function Clubs() {
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full font-medium transition-colors ${
-                  selectedCategory === category
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}>
+                className={`px-4 py-2 rounded-full font-medium transition-colors ${selectedCategory === category
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}>
                 {category}
               </button>
             ))}
@@ -586,19 +585,19 @@ export function Clubs() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
-                  
+
                   <div className="relative">
                     <img
-                      src={club.image || "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=400"}
+                      src={club.image || ""}
                       alt={club.name}
-                      className="w-full h-48 object-cover"
+                      className="w-full h-48 object-cover bg-gray-200"
                     />
                     <div className="absolute top-4 left-4">
                       <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full font-medium">
                         {club.category}
                       </span>
                     </div>
-                    {user?.isAdmin && (
+                    {(user?.isAdmin || (user?.username === "dbu10101040" && club.leadership?.president === user.id)) && (
                       <div className="absolute top-4 right-4 flex space-x-2">
                         <button
                           onClick={() => fetchJoinRequests(club._id || club.id)}
@@ -696,11 +695,10 @@ export function Clubs() {
 
                     <button
                       onClick={() => handleJoinClub(club)}
-                      className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                        user?.isAdmin 
-                          ? "bg-green-600 text-white hover:bg-green-700" 
-                          : "bg-blue-600 text-white hover:bg-blue-700"
-                      }`}>
+                      className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${user?.isAdmin
+                        ? "bg-green-600 text-white hover:bg-green-700"
+                        : "bg-blue-600 text-white hover:bg-blue-700"
+                        }`}>
                       {user?.isAdmin ? "Manage Club" : "Join Club"}
                     </button>
                   </div>
@@ -864,7 +862,7 @@ export function Clubs() {
                       <p><span className="font-medium">Status:</span> {selectedClubDetails.status}</p>
                       {selectedClubDetails.website && (
                         <p>
-                          <span className="font-medium">Website:</span> 
+                          <span className="font-medium">Website:</span>
                           <a href={selectedClubDetails.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
                             {selectedClubDetails.website}
                           </a>
@@ -872,7 +870,7 @@ export function Clubs() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-3">Contact Information</h3>
                     <div className="space-y-2 text-sm">
@@ -915,11 +913,10 @@ export function Clubs() {
                               </div>
                               <div className="text-right">
                                 <div className="flex items-center space-x-2">
-                                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                                    member.role === 'president' ? 'bg-blue-100 text-blue-800' :
+                                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${member.role === 'president' ? 'bg-blue-100 text-blue-800' :
                                     member.role === 'officer' ? 'bg-purple-100 text-purple-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
                                     {member.role}
                                   </span>
                                   <button
@@ -974,7 +971,7 @@ export function Clubs() {
                     ✕
                   </button>
                 </div>
-                
+
                 <div className="space-y-4">
                   {joinRequests.length === 0 ? (
                     <p className="text-gray-600 text-center py-8">
@@ -1050,7 +1047,7 @@ export function Clubs() {
               initiatives and can help you get started with the registration process.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button 
+              <button
                 onClick={() => user?.isAdmin ? setShowNewClubForm(true) : toast.info("Contact an admin to start a new club")}
                 className="bg-white text-green-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                 Start a Club

@@ -146,6 +146,11 @@ class ApiService {
     });
   }
 
+  async getClubCount() {
+    const response = await this.request('/clubs?limit=1');
+    return response.total || 0;
+  }
+
   async joinClub(id, joinData) {
     return this.request(`/clubs/${id}/join`, {
       method: 'POST',
@@ -339,6 +344,13 @@ class ApiService {
   async updateUser(id, userData) {
     return this.request(`/users/${id}`, {
       method: 'PUT',
+      body: JSON.stringify(userData)
+    });
+  }
+
+  async createUser(userData) {
+    return this.request('/users', {
+      method: 'POST',
       body: JSON.stringify(userData)
     });
   }

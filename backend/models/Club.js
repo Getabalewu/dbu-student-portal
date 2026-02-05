@@ -55,8 +55,7 @@ const clubSchema = new mongoose.Schema({
     required: true
   },
   image: {
-    type: String,
-    default: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=400'
+    type: String
   },
   members: [{
     user: {
@@ -183,17 +182,17 @@ clubSchema.index({ status: 1 });
 clubSchema.index({ 'members.user': 1 });
 
 // Virtual for member count
-clubSchema.virtual('memberCount').get(function() {
+clubSchema.virtual('memberCount').get(function () {
   return this.members.filter(member => member.status === 'approved').length;
 });
 
 // Virtual for event count
-clubSchema.virtual('eventCount').get(function() {
+clubSchema.virtual('eventCount').get(function () {
   return this.events.length;
 });
 
 // Update budget remaining when spent changes
-clubSchema.pre('save', function(next) {
+clubSchema.pre('save', function (next) {
   if (this.isModified('budget.spent') || this.isModified('budget.allocated')) {
     this.budget.remaining = this.budget.allocated - this.budget.spent;
   }

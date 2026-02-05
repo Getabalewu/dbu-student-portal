@@ -3,7 +3,20 @@ const Contact = require('../models/Contact');
 const { protect, adminOnly } = require('../middleware/auth');
 const { validateContact } = require('../middleware/validation');
 
+const nodemailer = require('nodemailer');
+
 const router = express.Router();
+
+// Email transporter configuration
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: process.env.SMTP_PORT || 587,
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_EMAIL, // Your email
+    pass: process.env.SMTP_PASSWORD // Your email password or app password
+  }
+});
 
 // @desc    Submit contact message
 // @route   POST /api/contact
@@ -21,6 +34,65 @@ router.post('/', validateContact, async (req, res) => {
       ipAddress: req.ip,
       userAgent: req.get('User-Agent')
     });
+
+    // Send email notification
+    const mailOptions = {
+      from: process.env.SMTP_EMAIL, // sender address
+      to: process.env.CONTACT_EMAIL_RECIPIENT || 'amtatawgetabalew32@gmail.com', // list of receivers
+      replyTo: email, // Allow replying directly to the sender
+      subject: `New Contact Message: ${subject}`, // Subject line
+      text: `Name: ${name}\nEmail: ${email}\nCategory: ${category}\n\nMessage:\n${message}`, // plain text body
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #f9f9f9;">
+          <h2 style="color: #2563eb; text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">New Contact Message</h2>
+          
+          <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 10px 0; font-weight: bold; color: #555; width: 30%;">Name:</td>
+                <td style="padding: 10px 0; color: #333;">${name}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; font-weight: bold; color: #555;">Email:</td>
+                <td style="padding: 10px 0; color: #333;"><a href="mailto:${email}" style="color: #2563eb; text-decoration: none;">${email}</a></td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; font-weight: bold; color: #555;">Category:</td>
+                <td style="padding: 10px 0; color: #333;">${category}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; font-weight: bold; color: #555;">Subject:</td>
+                <td style="padding: 10px 0; color: #333;">${subject}</td>
+              </tr>
+            </table>
+
+            <div style="margin-top: 20px;">
+              <p style="font-weight: bold; color: #555; margin-bottom: 10px;">Message:</p>
+              <div style="background-color: #f0f4f8; padding: 15px; border-radius: 6px; border-left: 4px solid #2563eb; color: #333; line-height: 1.6;">
+                ${message.replace(/\n/g, '<br>')}
+              </div>
+            </div>
+            
+            <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #999;">
+              <p>This message was sent via the DBU Student Council Portal Contact Form.</p>
+              <p>IP Address: ${req.ip}</p>
+            </div>
+          </div>
+        </div>
+      ` // html body
+    };
+
+    // Try to send email but don't block response if it fails (unless critical)
+    try {
+      if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
+        await transporter.sendMail(mailOptions);
+        console.log('Contact email sent successfully');
+      } else {
+        console.log('SMTP credentials not found, skipping email sending but saving message to DB.');
+      }
+    } catch (emailError) {
+      console.error('Failed to send contact email:', emailError);
+    }
 
     res.status(201).json({
       success: true,
@@ -56,11 +128,11 @@ router.get('/', protect, adminOnly, async (req, res) => {
 
     // Build query
     let query = {};
-    
+
     if (status) query.status = status;
     if (category) query.category = category;
     if (priority) query.priority = priority;
-    
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -320,7 +392,7 @@ router.get('/stats/overview', protect, adminOnly, async (req, res) => {
     // Recent messages (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const recentMessages = await Contact.countDocuments({
       createdAt: { $gte: thirtyDaysAgo }
     });
