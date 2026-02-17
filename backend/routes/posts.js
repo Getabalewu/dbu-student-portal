@@ -18,7 +18,7 @@ router.get('/', optionalAuth, async (req, res) => {
 
     // Build query
     let query = {};
-    
+
     // Only show published posts to non-admin users
     if (!req.user || !req.user.isAdmin) {
       query.status = 'published';
@@ -29,7 +29,7 @@ router.get('/', optionalAuth, async (req, res) => {
     if (type) query.type = type;
     if (category) query.category = category;
     if (important === 'true') query.important = true;
-    
+
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -112,18 +112,18 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // @access  Private/Admin
 router.post('/', protect, adminOnly, validatePost, async (req, res) => {
   try {
-    const { 
-      title, 
-      content, 
-      type, 
-      category, 
-      date, 
-      image, 
-      location, 
-      time, 
+    const {
+      title,
+      content,
+      type,
+      category,
+      date,
+      image,
+      location,
+      time,
       eventDate,
-      important, 
-      expiryDate, 
+      important,
+      expiryDate,
       targetAudience,
       tags,
       isPinned,
@@ -186,16 +186,16 @@ router.post('/', protect, adminOnly, validatePost, async (req, res) => {
 // @access  Private/Admin
 router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
-    const { 
-      title, 
-      content, 
-      category, 
-      image, 
-      location, 
-      time, 
+    const {
+      title,
+      content,
+      category,
+      image,
+      location,
+      time,
       eventDate,
-      important, 
-      expiryDate, 
+      important,
+      expiryDate,
       targetAudience,
       tags,
       status,
@@ -292,7 +292,7 @@ router.post('/:id/like', protect, async (req, res) => {
     }
 
     const hasLiked = post.hasUserLiked(req.user.id);
-    
+
     if (hasLiked) {
       // Unlike
       post.likes = post.likes.filter(like => like.user.toString() !== req.user.id);
@@ -443,20 +443,20 @@ router.get('/stats/overview', protect, adminOnly, async (req, res) => {
 
     // Total views and engagement
     const engagementStats = await Post.aggregate([
-      { 
-        $group: { 
-          _id: null, 
+      {
+        $group: {
+          _id: null,
           totalViews: { $sum: '$views' },
           totalLikes: { $sum: { $size: '$likes' } },
           totalComments: { $sum: { $size: '$comments' } }
-        } 
+        }
       }
     ]);
 
     // Recent posts (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const recentPosts = await Post.countDocuments({
       createdAt: { $gte: thirtyDaysAgo }
     });

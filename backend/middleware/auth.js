@@ -89,14 +89,15 @@ const protect = async (req, res, next) => {
 	}
 };
 
-// Admin access required
+// Admin or Council level access required
 const adminOnly = (req, res, next) => {
-	if (req.user && (req.user.isAdmin || req.user.role === "admin")) {
+	const privilegedRoles = ["admin", "president", "council_president", "council_secretary", "clubs_coordinator"];
+	if (req.user && (req.user.isAdmin || privilegedRoles.includes(req.user.role))) {
 		next();
 	} else {
 		res.status(403).json({
 			success: false,
-			message: "Access denied. Admin privileges required.",
+			message: "Access denied. Higher privileges required.",
 		});
 	}
 };
@@ -111,7 +112,10 @@ const authorize = (...roles) => {
 			});
 		}
 
-		if (!roles.includes(req.user.role)) {
+		const isPrivileged = req.user.isAdmin ||
+			['admin', 'president', 'council_president'].includes(req.user.role);
+
+		if (!roles.includes(req.user.role) && !isPrivileged) {
 			return res.status(403).json({
 				success: false,
 				message: `User role ${req.user.role} is not authorized to access this route`,
@@ -187,8 +191,8 @@ const clubLeader = async (req, res, next) => {
 			});
 		}
 
-		// Admins always have access
-		if (req.user.isAdmin || req.user.role === 'admin') {
+		// Admins and President always have access
+		if (req.user.isAdmin || req.user.role === 'admin' || req.user.role === 'president') {
 			return next();
 		}
 
@@ -202,11 +206,12 @@ const clubLeader = async (req, res, next) => {
 			});
 		}
 
-		// Check if user is in leadership
+		// Check if user is in leadership or is the global Clubs Coordinator
 		const isLeader =
 			(club.leadership.president && club.leadership.president.toString() === req.user._id.toString()) ||
 			(club.leadership.vicePresident && club.leadership.vicePresident.toString() === req.user._id.toString()) ||
-			(club.leadership.secretary && club.leadership.secretary.toString() === req.user._id.toString());
+			(club.leadership.secretary && club.leadership.secretary.toString() === req.user._id.toString()) ||
+			req.user.role === "clubs_coordinator";
 
 		if (isLeader) {
 			next();

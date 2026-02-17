@@ -346,6 +346,24 @@ router.post('/', protect, adminOnly, async (req, res) => {
   }
 });
 
+// @desc    Public dashboard statistics (for student dashboard)
+// @route   GET /api/users/public-stats
+// @access  Public
+router.get('/public-stats', async (req, res) => {
+  try {
+    const activeStudents = await User.countDocuments({ role: 'student', isActive: true });
+    const totalStudents = await User.countDocuments({ role: 'student' });
+    res.json({
+      success: true,
+      active: activeStudents,
+      total: totalStudents
+    });
+  } catch (error) {
+    console.error('Get public user stats error:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching user statistics' });
+  }
+});
+
 // @desc    Get all users
 // @route   GET /api/users
 // @access  Private/Admin

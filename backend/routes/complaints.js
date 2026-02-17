@@ -19,13 +19,13 @@ router.get('/', protect, async (req, res) => {
 
     // Build query
     let query = {};
-    
+
     // Non-admin users can only see their own complaints
     if (!req.user.isAdmin && !req.user.role === 'admin') {
       // For mock users, don't filter by submittedBy since they won't have real ObjectIds
-      if (req.user.id && !req.user.id.toString().includes('admin_') && 
-          !req.user.id.toString().includes('student_') && 
-          !req.user.id.toString().includes('google_')) {
+      if (req.user.id && !req.user.id.toString().includes('admin_') &&
+        !req.user.id.toString().includes('student_') &&
+        !req.user.id.toString().includes('google_')) {
         query.submittedBy = req.user.id;
       }
     }
@@ -33,7 +33,7 @@ router.get('/', protect, async (req, res) => {
     if (status) query.status = status;
     if (category) query.category = category;
     if (priority) query.priority = priority;
-    
+
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -67,6 +67,56 @@ router.get('/', protect, async (req, res) => {
       success: false,
       message: 'Server error fetching complaints'
     });
+  }
+});
+
+// @desc    Public dashboard statistics (for student dashboard)
+// @route   GET /api/complaints/public-stats
+// @access  Public
+router.get('/public-stats', async (req, res) => {
+  try {
+    // Count pending complaints (newest first based on submission)
+    const pendingComplaints = await Complaint.countDocuments({
+      status: { $in: ['submitted', 'under_review'] }
+    });
+
+    // Get the most recent pending complaint date
+    const recentComplaint = await Complaint.findOne({
+      status: { $in: ['submitted', 'under_review'] }
+    })
+      .sort({ createdAt: -1 })
+      .select('createdAt');
+
+    const totalComplaints = await Complaint.countDocuments();
+
+    res.json({
+      success: true,
+      pending: pendingComplaints,
+      total: totalComplaints,
+      lastSubmitted: recentComplaint?.createdAt || null
+    });
+  } catch (error) {
+    console.error('Get public complaint stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching complaint statistics'
+    });
+  }
+});
+
+// @desc    Get all branches/categories
+// @route   GET /api/complaints/branches
+// @access  Public
+router.get('/branches', async (req, res) => {
+  try {
+    const branches = Complaint.schema.path('branch').enumValues;
+    res.json({
+      success: true,
+      count: branches.length,
+      branches
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -229,7 +279,7 @@ router.post('/:id/responses', protect, adminOnly, async (req, res) => {
     };
 
     complaint.responses.push(response);
-    
+
     // Update status to under_review if it's still submitted
     if (complaint.status === 'submitted') {
       complaint.status = 'under_review';
@@ -323,7 +373,7 @@ router.get('/stats/overview', protect, adminOnly, async (req, res) => {
     // Recent complaints (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const recentComplaints = await Complaint.countDocuments({
       createdAt: { $gte: thirtyDaysAgo }
     });
@@ -398,5 +448,6 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     });
   }
 });
+
 
 module.exports = router;

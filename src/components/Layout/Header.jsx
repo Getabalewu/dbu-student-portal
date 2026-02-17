@@ -1,18 +1,33 @@
 /** @format */
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom"; // ✅ Added useLocation
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut, Bell } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { NotificationBadge } from "./NotificationBadge";
+import { NotificationDropdown } from "./NotificationDropdown";
 import "../../app.css";
 
 export function Header() {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const [isNotifOpen, setIsNotifOpen] = useState(false);
 	const { user, logout } = useAuth();
-	const { notifications } = useNotifications();
+	const { notifications, markAsSeen } = useNotifications();
 	const navigate = useNavigate();
 	const location = useLocation(); // ✅ Get current route
+	const notifRef = useRef(null);
+
+	const totalNotifications = Object.values(notifications).reduce((a, b) => a + b, 0);
+
+	useEffect(() => {
+		function handleClickOutside(event) {
+			if (notifRef.current && !notifRef.current.contains(event.target)) {
+				setIsNotifOpen(false);
+			}
+		}
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
 
 	const handleLogout = () => {
 		logout();
@@ -33,12 +48,11 @@ export function Header() {
 		...(user
 			? [
 				{ name: "Dashboard", href: "/dashboard" },
-				{ name: "Clubs", href: "/clubs", badge: notifications.clubs },
-				{ name: "Elections", href: "/elections", badge: notifications.elections },
+				{ name: "Clubs", href: "/clubs" },
+				{ name: "Elections", href: "/elections" },
 				{ name: "Services", href: "/services" },
-				{ name: "Latest", href: "/latest", badge: notifications.posts },
-				{ name: "Complaints", href: "/complaints", badge: notifications.complaints },
-				{ name: "Contact", href: "/contact" },
+				{ name: "Latest", href: "/latest" },
+				{ name: "Complaints", href: "/complaints" },
 			]
 			: []),
 	];
@@ -113,7 +127,6 @@ export function Header() {
 									className="text-gray-700 hover:text-blue-600 font-medium transition-colors relative"
 								>
 									{item.name}
-									{item.badge > 0 && <NotificationBadge count={item.badge} />}
 								</Link>
 							))}
 					</nav>
@@ -139,6 +152,22 @@ export function Header() {
 										Admin Panel
 									</Link>
 								)}
+
+								{/* Notification Bell */}
+								<div className="relative" ref={notifRef}>
+									<button
+										onClick={() => setIsNotifOpen(!isNotifOpen)}
+										className="p-2 text-gray-700 hover:text-blue-600 rounded-full hover:bg-gray-100 transition-colors relative"
+									>
+										<Bell className="w-6 h-6" />
+										{totalNotifications > 0 && <NotificationBadge count={totalNotifications} />}
+									</button>
+									<NotificationDropdown
+										isOpen={isNotifOpen}
+										onClose={() => setIsNotifOpen(false)}
+									/>
+								</div>
+
 								<button
 									onClick={handleLogout}
 									className="flex items-center space-x-2 text-gray-700 hover:text-red-600"
@@ -198,11 +227,6 @@ export function Header() {
 									onClick={() => setIsMenuOpen(false)}
 								>
 									{item.name}
-									{item.badge > 0 && (
-										<span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5">
-											{item.badge}
-										</span>
-									)}
 								</Link>
 							))}
 					</div>

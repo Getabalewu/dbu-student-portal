@@ -263,10 +263,29 @@ export function AdminDashboard() {
 
       // Process results and handle any failures gracefully
       setStats({
-        users: userStats.status === 'fulfilled' ? userStats.value.stats : { total: 0, active: 0, admins: 0, students: 0 },
-        complaints: complaintStats.status === 'fulfilled' ? complaintStats.value.stats : { total: 0, pending: 0, resolved: 0, underReview: 0 },
-        clubs: clubStats.status === 'fulfilled' ? clubStats.value.stats : { total: 0, active: 0, pending: 0 },
-        elections: electionStats.status === 'fulfilled' ? electionStats.value.stats : { total: 0, active: 0, upcoming: 0, completed: 0 },
+        users: userStats.status === 'fulfilled' ? {
+          total: userStats.value.stats.totalUsers,
+          active: userStats.value.stats.activeUsers,
+          admins: userStats.value.stats.adminUsers,
+          students: userStats.value.stats.studentUsers
+        } : { total: 0, active: 0, admins: 0, students: 0 },
+        complaints: complaintStats.status === 'fulfilled' ? {
+          total: complaintStats.value.stats.totalComplaints,
+          pending: complaintStats.value.stats.pendingComplaints,
+          resolved: complaintStats.value.stats.resolvedComplaints,
+          underReview: complaintStats.value.stats.underReviewComplaints
+        } : { total: 0, pending: 0, resolved: 0, underReview: 0 },
+        clubs: clubStats.status === 'fulfilled' ? {
+          total: clubStats.value.stats.totalClubs,
+          active: clubStats.value.stats.activeClubs,
+          pending: clubStats.value.stats.pendingClubs
+        } : { total: 0, active: 0, pending: 0 },
+        elections: electionStats.status === 'fulfilled' ? {
+          total: electionStats.value.stats.totalElections,
+          active: electionStats.value.stats.activeElections,
+          upcoming: electionStats.value.stats.upcomingElections,
+          completed: electionStats.value.stats.completedElections
+        } : { total: 0, active: 0, upcoming: 0, completed: 0 },
         posts: postStats.status === 'fulfilled' ? postStats.value.stats : { total: 0, published: 0, drafts: 0 },
         contacts: contactStats.status === 'fulfilled' ? contactStats.value.stats : { total: 0, new: 0, replied: 0 },
       });
@@ -496,8 +515,8 @@ export function AdminDashboard() {
             {recentActivity.map((activity) => (
               <div key={activity.id} className="flex items-start space-x-3">
                 <div className={`w-2 h-2 mt-2 rounded-full ${activity.type === 'user' ? 'bg-blue-500' :
-                    activity.type === 'complaint' ? 'bg-orange-500' :
-                      activity.type === 'club' ? 'bg-purple-500' : 'bg-green-500'
+                  activity.type === 'complaint' ? 'bg-orange-500' :
+                    activity.type === 'club' ? 'bg-purple-500' : 'bg-green-500'
                   }`}></div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">{activity.message}</p>

@@ -131,6 +131,10 @@ const validatePost = [
     .optional()
     .isIn(['General', 'Campus', 'Academic', 'Sports', 'Research', 'Cultural'])
     .withMessage('Please select a valid category'),
+  body('image')
+    .optional({ checkFalsy: true })
+    .isURL()
+    .withMessage('Please provide a valid image URL'),
   handleValidationErrors
 ];
 

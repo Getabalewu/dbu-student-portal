@@ -42,7 +42,10 @@ function AppContent() {
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
+          <Route
+            path="/contact"
+            element={user ? <Navigate to="/dashboard" replace /> : <Contact />}
+          />
 
           {/* Auth Route */}
           <Route

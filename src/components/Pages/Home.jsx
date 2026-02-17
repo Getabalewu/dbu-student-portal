@@ -11,11 +11,12 @@ import "../../app.css";
 export const Home = () => {
 	const { user } = useAuth();
 	const [announcements, setAnnouncements] = useState([]);
+	const [isLoadingStats, setIsLoadingStats] = useState(true);
 	const [stats, setStats] = useState({
-		activeStudents: "10600",
-		clubs: "10",
-		serviceBranches: "10",
-		satisfactionRate: "95%"
+		activeStudents: "0",
+		clubs: "0",
+		serviceBranches: "0",
+		satisfactionRate: "0%"
 	});
 	const [showElectionModal, setShowElectionModal] = useState(false);
 	const [showClubModal, setShowClubModal] = useState(false);
@@ -28,16 +29,46 @@ export const Home = () => {
 
 	const loadData = async () => {
 		try {
+			setIsLoadingStats(true);
+			// Fetch announcements
 			const posts = await apiService.getPosts({ limit: 3, type: 'Announcement' });
-
 			setAnnouncements(posts.map(post => ({
 				id: post._id,
 				title: post.title,
 				date: post.date,
 				urgent: post.important
 			})));
+
+			// Fetch dynamic stats
+			try {
+				const [userStats, clubStats, branchData, complaintStats] = await Promise.all([
+					apiService.getUserPublicStats(),
+					apiService.getClubPublicStats(),
+					apiService.getBranches(),
+					apiService.getComplaintPublicStats().catch(() => ({ total: 0, resolved: 0 }))
+				]);
+
+				// Calculate satisfaction rate (simple demo logic: resolved / total)
+				let satisfaction = 95; // Default fallback
+				if (complaintStats && complaintStats.total > 0) {
+					satisfaction = Math.round((complaintStats.resolved || 0) / complaintStats.total * 100);
+					if (satisfaction === 0) satisfaction = 100; // If no complaints yet, it's 100% technically
+				}
+
+				setStats({
+					activeStudents: userStats?.total?.toLocaleString() || "0",
+					clubs: clubStats?.total?.toString() || "0",
+					serviceBranches: branchData?.count?.toString() || "0",
+					satisfactionRate: `${satisfaction}%`
+				});
+			} catch (statError) {
+				console.error('Error loading stats:', statError);
+				// Keep defaults or set to fallback values
+			}
 		} catch (error) {
-			console.error('Error loading data:', error);
+			console.error('Error loading general data:', error);
+		} finally {
+			setIsLoadingStats(false);
 		}
 	};
 
@@ -152,7 +183,7 @@ export const Home = () => {
 								transition={{ delay: index * 0.1 }}
 								className="text-center">
 								<div className="text-3xl md:text-4xl font-bold text-blue-600 mb-2">
-									{stat.number}
+									{isLoadingStats ? "..." : stat.number}
 								</div>
 								<div className="text-gray-600">{stat.label}</div>
 							</motion.div>
@@ -223,9 +254,8 @@ export const Home = () => {
 									initial={{ opacity: 0, y: 20 }}
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: index * 0.1 }}
-									className={`bg-gray-50 rounded-xl p-6 hover:shadow-md transition-shadow ${
-										announcement.urgent ? "border-l-4 border-red-500" : ""
-									}`}>
+									className={`bg-gray-50 rounded-xl p-6 hover:shadow-md transition-shadow ${announcement.urgent ? "border-l-4 border-red-500" : ""
+										}`}>
 									{announcement.urgent && (
 										<span className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full mb-3">
 											Urgent

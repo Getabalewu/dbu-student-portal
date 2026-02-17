@@ -30,6 +30,13 @@ export function NotificationProvider({ children }) {
     };
   });
 
+  const [newItems, setNewItems] = useState({
+    posts: [],
+    complaints: [],
+    clubs: [],
+    elections: [],
+  });
+
   useEffect(() => {
     if (user) {
       fetchNotifications();
@@ -54,28 +61,57 @@ export function NotificationProvider({ children }) {
       const clubs = Array.isArray(clubsData) ? clubsData : [];
       const elections = Array.isArray(electionsData) ? electionsData : (electionsData.elections || []);
 
-      const newPostsCount = posts.filter(p =>
+      const filteredPosts = posts.filter(p =>
         new Date(p.createdAt || p.date).getTime() > lastSeen.posts
-      ).length;
+      );
 
-      const newComplaintsCount = complaints.filter(c =>
+      const filteredComplaints = complaints.filter(c =>
         new Date(c.createdAt || c.submittedAt).getTime() > lastSeen.complaints
-      ).length;
+      );
 
-      const newClubsCount = clubs.filter(c =>
+      const filteredClubs = clubs.filter(c =>
         new Date(c.createdAt).getTime() > lastSeen.clubs
-      ).length;
+      );
 
-      const newElectionsCount = elections.filter(e =>
+      const filteredElections = elections.filter(e =>
         new Date(e.createdAt).getTime() > lastSeen.elections
-      ).length;
+      );
 
-      setNotifications({
-        posts: newPostsCount,
-        complaints: newComplaintsCount,
-        clubs: newClubsCount,
-        elections: newElectionsCount,
-      });
+      // Role-based filtering
+      const isAdmin = user.isAdmin || user.role === 'admin';
+
+      if (isAdmin) {
+        // Admins see new complaints and potentially club join requests 
+        // For now, let's focus on complaints and new clubs/elections if they need to manage them
+        setNotifications({
+          posts: 0, // Admins don't need notifications for their own posts
+          complaints: filteredComplaints.length,
+          clubs: 0,
+          elections: 0,
+        });
+
+        setNewItems({
+          posts: [],
+          complaints: filteredComplaints,
+          clubs: [],
+          elections: [],
+        });
+      } else {
+        // Students see new posts, active/upcoming elections, and new clubs
+        setNotifications({
+          posts: filteredPosts.length,
+          complaints: 0, // Students don't see all complaints
+          clubs: filteredClubs.length,
+          elections: filteredElections.length,
+        });
+
+        setNewItems({
+          posts: filteredPosts,
+          complaints: [],
+          clubs: filteredClubs,
+          elections: filteredElections,
+        });
+      }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     }
@@ -93,10 +129,16 @@ export function NotificationProvider({ children }) {
       ...prev,
       [type]: 0,
     }));
+
+    setNewItems(prev => ({
+      ...prev,
+      [type]: [],
+    }));
   };
 
   const value = {
     notifications,
+    newItems,
     markAsSeen,
     refreshNotifications: fetchNotifications,
   };

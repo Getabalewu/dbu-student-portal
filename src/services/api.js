@@ -113,6 +113,15 @@ class ApiService {
     return this.request('/complaints/stats/overview');
   }
 
+  // Public stats for student dashboard
+  async getComplaintPublicStats() {
+    return this.request('/complaints/public-stats');
+  }
+
+  async getBranches() {
+    return this.request('/complaints/branches');
+  }
+
   // Clubs endpoints
   async getClubs(params = {}) {
     const queryString = new URLSearchParams(params).toString();
@@ -190,6 +199,11 @@ class ApiService {
     return this.request('/clubs/stats/overview');
   }
 
+  // Public stats for student dashboard
+  async getClubPublicStats() {
+    return this.request('/clubs/public-stats');
+  }
+
   // Elections endpoints
   async getElections(params = {}) {
     const queryString = new URLSearchParams(params).toString();
@@ -237,6 +251,11 @@ class ApiService {
 
   async getElectionStats() {
     return this.request('/elections/stats/overview');
+  }
+
+  // Public stats for student dashboard
+  async getElectionPublicStats() {
+    return this.request('/elections/public-stats');
   }
 
   // Posts endpoints
@@ -363,6 +382,11 @@ class ApiService {
 
   async getUserStats() {
     return this.request('/users/stats/overview');
+  }
+
+  // Public stats for student dashboard
+  async getUserPublicStats() {
+    return this.request('/users/public-stats');
   }
 
   async resetUserPassword(id, passwordData) {

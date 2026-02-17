@@ -10,6 +10,7 @@ import {
   Plus,
   Trash2,
   User,
+  Edit,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
@@ -26,6 +27,7 @@ export function Elections() {
   const [loading, setLoading] = useState(true);
   const [votedElections, setVotedElections] = useState(new Set());
   const [showNewElectionForm, setShowNewElectionForm] = useState(false);
+  const [editingElectionId, setEditingElectionId] = useState(null);
   const [votingInProgress, setVotingInProgress] = useState(false);
   const [newElection, setNewElection] = useState({
     title: "",
@@ -169,11 +171,72 @@ export function Elections() {
     }));
   };
 
+  const handleUpdateElection = async (e) => {
+    e.preventDefault();
+
+    const isElectionAdmin = user?.isAdmin || user?.role === 'president' || user?.role === 'council_president';
+    if (!isElectionAdmin) {
+      toast.error("You do not have permission to update elections");
+      return;
+    }
+
+    if (!newElection.title.trim() || !newElection.description.trim()) {
+      toast.error("Title and description are required");
+      return;
+    }
+
+    try {
+      const electionData = {
+        title: newElection.title.trim(),
+        description: newElection.description.trim(),
+        startDate: newElection.startDate,
+        endDate: newElection.endDate,
+        electionType: newElection.electionType,
+        isPublic: newElection.isPublic,
+        candidates: newElection.candidates,
+      };
+
+      await apiService.updateElection(editingElectionId, electionData);
+      await fetchElections();
+      toast.success("Election updated successfully!");
+
+      setNewElection({
+        title: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        electionType: "general",
+        isPublic: true,
+        candidates: [],
+      });
+      setEditingElectionId(null);
+      setShowNewElectionForm(false);
+    } catch (error) {
+      console.error("Failed to update election:", error);
+      toast.error(error.message || "Failed to update election");
+    }
+  };
+
+  const startEditing = (election) => {
+    setNewElection({
+      title: election.title,
+      description: election.description,
+      startDate: new Date(election.startDate).toISOString().slice(0, 16),
+      endDate: new Date(election.endDate).toISOString().slice(0, 16),
+      electionType: election.electionType || "general",
+      isPublic: election.isPublic ?? true,
+      candidates: election.candidates || [],
+    });
+    setEditingElectionId(election._id || election.id);
+    setShowNewElectionForm(true);
+  };
+
   const handleCreateElection = async (e) => {
     e.preventDefault();
 
-    if (!user?.isAdmin) {
-      toast.error("Only admins can create elections");
+    const isElectionAdmin = user?.isAdmin || user?.role === 'president' || user?.role === 'council_president';
+    if (!isElectionAdmin) {
+      toast.error("You do not have permission to create elections");
       return;
     }
 
@@ -240,8 +303,10 @@ export function Elections() {
       return;
     }
 
-    if (user.isAdmin) {
-      toast.error("Admins cannot vote in elections");
+    // Council level roles (excluding clubs coordinator who is a student role usually) cannot vote
+    const isGlobalAdmin = user.isAdmin || user.role === 'admin' || user.role === 'council_president';
+    if (isGlobalAdmin) {
+      toast.error("Global administrators cannot vote in elections");
       return;
     }
 
@@ -270,8 +335,8 @@ export function Elections() {
   };
 
   const handleDeleteElection = async (electionId) => {
-    if (!user?.isAdmin) {
-      toast.error("Only admins can delete elections");
+    if (!user?.isAdmin && user?.role !== 'president') {
+      toast.error("You do not have permission to delete elections");
       return;
     }
 
@@ -290,8 +355,9 @@ export function Elections() {
   };
 
   const announceResults = async (electionId) => {
-    if (!user?.isAdmin) {
-      toast.error("Only admins can announce results");
+    const isElectionAdmin = user?.isAdmin || user?.role === 'president' || user?.role === 'council_president';
+    if (!isElectionAdmin) {
+      toast.error("You do not have permission to announce results");
       return;
     }
 
@@ -358,23 +424,37 @@ export function Elections() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Admin Controls */}
-        {user?.isAdmin && user?.username !== "dbu10101040" && (
+        {(user?.isAdmin || user?.role === 'president' || user?.role === 'council_president') && (
           <div className="mb-8 bg-white rounded-xl p-6 shadow-sm">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">
-                Admin Controls
+                {editingElectionId ? "Edit Election" : "Admin Controls"}
               </h2>
               <button
-                onClick={() => setShowNewElectionForm(!showNewElectionForm)}
+                onClick={() => {
+                  if (editingElectionId) {
+                    setEditingElectionId(null);
+                    setNewElection({
+                      title: "",
+                      description: "",
+                      startDate: "",
+                      endDate: "",
+                      electionType: "general",
+                      isPublic: true,
+                      candidates: [],
+                    });
+                  }
+                  setShowNewElectionForm(!showNewElectionForm);
+                }}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
                 <Plus className="w-4 h-4 mr-2" />
-                Create New Election
+                {showNewElectionForm ? "Cancel" : "Create New Election"}
               </button>
             </div>
 
             {showNewElectionForm && (
               <div className="mt-6 space-y-6">
-                <form onSubmit={handleCreateElection} className="space-y-4">
+                <form onSubmit={editingElectionId ? handleUpdateElection : handleCreateElection} className="space-y-4">
                   {/* Basic Election Info */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -663,14 +743,25 @@ export function Elections() {
                   {/* Form Actions */}
                   <div className="flex gap-4 pt-4 border-t">
                     <button
-                      type="button"
-                      onClick={handleCreateElection}
+                      type="submit"
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                      Create Election
+                      {editingElectionId ? "Update Election" : "Create Election"}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowNewElectionForm(false)}
+                      onClick={() => {
+                        setShowNewElectionForm(false);
+                        setEditingElectionId(null);
+                        setNewElection({
+                          title: "",
+                          description: "",
+                          startDate: "",
+                          endDate: "",
+                          electionType: "general",
+                          isPublic: true,
+                          candidates: [],
+                        });
+                      }}
                       className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
                       Cancel
                     </button>
@@ -732,13 +823,22 @@ export function Elections() {
                         {getStatusIcon(election.status)}
                         <span className="ml-1 capitalize">{election.status}</span>
                       </span>
-                      {user?.isAdmin && user?.username !== "dbu10101040" && (
-                        <button
-                          onClick={() => handleDeleteElection(election._id || election.id)}
-                          className="text-red-600 hover:text-red-700 p-1">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
+                      <div className="flex items-center space-x-1">
+                        {(user?.isAdmin || user?.role === 'president' || user?.role === 'council_president') && (
+                          <>
+                            <button
+                              onClick={() => startEditing(election)}
+                              className="text-blue-600 hover:text-blue-700 p-1">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteElection(election._id || election.id)}
+                              className="text-red-600 hover:text-red-700 p-1">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -830,7 +930,7 @@ export function Elections() {
                       View Details
                     </motion.button>
 
-                    {election.status === "completed" && user?.isAdmin && user?.username !== "dbu10101040" && !election.resultsPublished && (
+                    {election.status === "completed" && (user?.isAdmin || user?.role === 'president' || user?.role === 'council_president') && !election.resultsPublished && (
                       <button
                         onClick={() => announceResults(election._id || election.id)}
                         className="bg-yellow-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-yellow-700 transition-colors">

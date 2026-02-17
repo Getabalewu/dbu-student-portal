@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, Calendar, Award, Search, Filter, Plus, MapPin, Mail, Phone, Globe } from "lucide-react";
+import { Users, Calendar, Award, Search, Filter, Plus, MapPin, Mail, Phone, Globe, Trash2, Edit } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotifications } from "../../contexts/NotificationContext";
@@ -14,6 +14,8 @@ export function Clubs() {
   const [clubs, setClubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewClubForm, setShowNewClubForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingClubId, setEditingClubId] = useState(null);
   const [newClub, setNewClub] = useState({
     name: "",
     category: "Academic",
@@ -101,8 +103,7 @@ export function Clubs() {
 
     if (user.isAdmin) {
       // Show club details for admin instead of join form
-      setSelectedClubDetails(club);
-      setShowClubDetails(true);
+      handleViewMembers(club);
       return;
     }
 
@@ -195,11 +196,31 @@ export function Clubs() {
     }
   };
 
+  const handleEditClub = (club) => {
+    setNewClub({
+      name: club.name,
+      category: club.category,
+      description: club.description,
+      imageFile: null,
+      imagePreview: club.image,
+      contactEmail: club.contactEmail || "",
+      contactPhone: club.contactPhone || "",
+      website: club.website || "",
+      officeLocation: club.officeLocation || "",
+      meetingSchedule: club.meetingSchedule || "",
+      requirements: club.requirements || "",
+    });
+    setEditingClubId(club._id || club.id);
+    setIsEditing(true);
+    setShowNewClubForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleCreateClub = async (e) => {
     e.preventDefault();
 
-    if (!user?.isAdmin) {
-      toast.error("Only admins can create clubs");
+    if (!user?.isAdmin && user?.role !== 'president' && !isEditing) {
+      toast.error("You do not have permission to create clubs");
       return;
     }
 
@@ -223,13 +244,17 @@ export function Clubs() {
         requirements: newClub.requirements.trim(),
       };
 
-      console.log('Creating club with data:', clubData);
-
-      const response = await apiService.createClub(clubData);
-      console.log('Create club response:', response);
+      if (isEditing) {
+        console.log('Updating club:', editingClubId, clubData);
+        await apiService.updateClub(editingClubId, clubData);
+        toast.success("Club updated successfully!");
+      } else {
+        console.log('Creating club with data:', clubData);
+        await apiService.createClub(clubData);
+        toast.success("Club created successfully!");
+      }
 
       await fetchClubs(); // Refresh the clubs list
-      toast.success("Club created successfully!");
 
       // Reset form
       setNewClub({
@@ -245,6 +270,8 @@ export function Clubs() {
         meetingSchedule: "",
         requirements: "",
       });
+      setIsEditing(false);
+      setEditingClubId(null);
       setShowNewClubForm(false);
     } catch (error) {
       console.error("Failed to create club:", error);
@@ -252,9 +279,31 @@ export function Clubs() {
     }
   };
 
+  const handleViewMembers = async (club) => {
+    // Only admins can view members
+    if (!user?.isAdmin) {
+      toast.error("Only administrators can view member lists");
+      return;
+    }
+
+
+    try {
+      const clubId = club._id || club.id;
+      const detailedClub = await apiService.getClub(clubId);
+      setSelectedClubDetails(detailedClub);
+      setShowClubDetails(true);
+    } catch (error) {
+      console.error("Failed to fetch club details:", error);
+      toast.error("Failed to load member list");
+      // Fallback to basic data if details fetch fails
+      setSelectedClubDetails(club);
+      setShowClubDetails(true);
+    }
+  };
+
   const handleRemoveMember = async (clubId, memberId) => {
-    if (!user?.isAdmin && user?.username !== "dbu10101040") {
-      toast.error("Only admins can remove members");
+    if (!user?.isAdmin) {
+      toast.error("Only administrators can remove members");
       return;
     }
 
@@ -278,8 +327,8 @@ export function Clubs() {
   };
 
   const handleDeleteClub = async (clubId) => {
-    if (!user?.isAdmin) {
-      toast.error("Only admins can delete clubs");
+    if (!user?.isAdmin && user?.role !== 'president') {
+      toast.error("You do not have permission to delete clubs");
       return;
     }
 
@@ -310,8 +359,17 @@ export function Clubs() {
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               Student Clubs
             </h1>
+            {!loading && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-8 border border-white/30">
+                < Award className="w-5 h-5" />
+                <span className="font-semibold">{clubs.length} Clubs Active to Join</span>
+              </motion.div>
+            )}
             <p className="text-xl md:text-2xl text-blue-100 max-w-4xl mx-auto">
-              Join one of our many student clubs and organizations to pursue
+              Join {clubs.length > 0 ? `one of our ${clubs.length}` : "one of our many"} student clubs and organizations to pursue
               your interests, develop new skills, and connect with like-minded peers.
             </p>
           </motion.div>
@@ -320,17 +378,45 @@ export function Clubs() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Admin Controls */}
-        {user?.isAdmin && user?.username !== "dbu10101040" && (
+        {user?.isAdmin && (
           <div className="mb-8 bg-white rounded-xl p-6 shadow-sm">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">
-                Admin Controls
+                {isEditing ? "Edit Club" : "Admin Controls"}
               </h2>
               <button
-                onClick={() => setShowNewClubForm(!showNewClubForm)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
-                <Plus className="w-4 h-4 mr-2" />
-                Create New Club
+                onClick={() => {
+                  if (showNewClubForm && isEditing) {
+                    setIsEditing(false);
+                    setEditingClubId(null);
+                    setNewClub({
+                      name: "",
+                      category: "Academic",
+                      description: "",
+                      imageFile: null,
+                      imagePreview: "",
+                      contactEmail: "",
+                      contactPhone: "",
+                      website: "",
+                      officeLocation: "",
+                      meetingSchedule: "",
+                      requirements: "",
+                    });
+                  }
+                  setShowNewClubForm(!showNewClubForm);
+                }}
+                className={`${isEditing ? "bg-amber-600 hover:bg-amber-700" : "bg-blue-600 hover:bg-blue-700"} text-white px-4 py-2 rounded-lg transition-colors flex items-center`}>
+                {isEditing ? (
+                  <>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Cancel Edit
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create New Club
+                  </>
+                )}
               </button>
             </div>
 
@@ -509,7 +595,7 @@ export function Clubs() {
                   <button
                     type="submit"
                     className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                    Create Club
+                    {isEditing ? "Update Club" : "Create Club"}
                   </button>
                   <button
                     type="button"
@@ -597,22 +683,19 @@ export function Clubs() {
                         {club.category}
                       </span>
                     </div>
-                    {(user?.isAdmin || (user?.username === "dbu10101040" && club.leadership?.president === user.id)) && (
+                    {user?.isAdmin && (
                       <div className="absolute top-4 right-4 flex space-x-2">
+                        <button
+                          onClick={() => handleEditClub(club)}
+                          className="bg-amber-500 text-white p-2 rounded-full hover:bg-amber-600 transition-colors"
+                          title="Edit Club">
+                          <Edit className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => fetchJoinRequests(club._id || club.id)}
                           className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors"
                           title="View Join Requests">
                           <Users className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedClubDetails(club);
-                            setShowClubDetails(true);
-                          }}
-                          className="bg-green-600 text-white p-2 rounded-full hover:bg-green-700 transition-colors"
-                          title="View Members">
-                          👥
                         </button>
                         <button
                           onClick={() => handleDeleteClub(club._id || club.id)}
@@ -694,12 +777,19 @@ export function Clubs() {
                     </div>
 
                     <button
-                      onClick={() => handleJoinClub(club)}
-                      className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${user?.isAdmin
-                        ? "bg-green-600 text-white hover:bg-green-700"
-                        : "bg-blue-600 text-white hover:bg-blue-700"
+                      onClick={() => user?.isAdmin ? handleViewMembers(club) : handleJoinClub(club)}
+                      className={`w-full py-3 rounded-xl font-bold transition-all transform hover:scale-[1.02] shadow-md border-b-4 active:border-b-0 active:translate-y-1 ${user?.isAdmin
+                        ? "bg-green-600 text-white hover:bg-green-700 border-green-800"
+                        : "bg-blue-600 text-white hover:bg-blue-700 border-blue-800"
                         }`}>
-                      {user?.isAdmin ? "Manage Club" : "Join Club"}
+                      <div className="flex items-center justify-center gap-2">
+                        <Users className="w-5 h-5" />
+                        <span>
+                          {user?.isAdmin
+                            ? "Manage Club & View Members"
+                            : "Join Club"}
+                        </span>
+                      </div>
                     </button>
                   </div>
                 </motion.div>
@@ -858,7 +948,7 @@ export function Clubs() {
                     <div className="space-y-2 text-sm">
                       <p><span className="font-medium">Category:</span> {selectedClubDetails.category}</p>
                       <p><span className="font-medium">Founded:</span> {selectedClubDetails.founded}</p>
-                      <p><span className="font-medium">Total Members:</span> {selectedClubDetails.members || 0}</p>
+                      <p><span className="font-medium">Total Members:</span> {Array.isArray(selectedClubDetails.members) ? selectedClubDetails.members.length : (selectedClubDetails.members || 0)}</p>
                       <p><span className="font-medium">Status:</span> {selectedClubDetails.status}</p>
                       {selectedClubDetails.website && (
                         <p>
@@ -894,48 +984,63 @@ export function Clubs() {
 
                 {/* Club Members List */}
                 <div className="mb-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">Club Members</h3>
-                  {selectedClubDetails.members && selectedClubDetails.members.length > 0 ? (
-                    <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    Club Members {Array.isArray(selectedClubDetails.members) ? `(${selectedClubDetails.members.length})` : ''}
+                  </h3>
+
+                  {Array.isArray(selectedClubDetails.members) && selectedClubDetails.members.length > 0 ? (
+                    <div className="bg-gray-50 rounded-xl p-4 max-h-96 overflow-y-auto border border-gray-100">
                       <div className="space-y-3">
-                        {selectedClubDetails.members
-                          .filter(member => member.status === 'approved')
-                          .map((member, index) => (
-                            <div key={index} className="flex items-center justify-between bg-white p-3 rounded-lg">
+                        {selectedClubDetails.members.map((member, index) => (
+                          <div key={member._id || index} className="flex flex-col bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:border-blue-200 transition-all">
+                            <div className="flex items-center justify-between mb-2">
                               <div>
-                                <p className="font-medium text-gray-900">{member.fullName}</p>
-                                <p className="text-sm text-gray-600">
-                                  Username: {member.user?.username || member.username || 'N/A'}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  {member.department} - {member.year}
+                                <p className="font-bold text-gray-900 text-lg">{member.fullName || 'Anonymous Member'}</p>
+                                <p className="text-sm text-blue-600 font-medium font-mono">
+                                  @{member.user?.username || member.username || 'guest'}
                                 </p>
                               </div>
-                              <div className="text-right">
-                                <div className="flex items-center space-x-2">
-                                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${member.role === 'president' ? 'bg-blue-100 text-blue-800' :
-                                    member.role === 'officer' ? 'bg-purple-100 text-purple-800' :
-                                      'bg-gray-100 text-gray-800'
-                                    }`}>
-                                    {member.role}
-                                  </span>
+                              <div className="flex items-center space-x-2">
+                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${member.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                  member.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
+                                  }`}>
+                                  {member.status}
+                                </span>
+                                <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-[10px] font-bold uppercase">
+                                  {member.role || 'member'}
+                                </span>
+                                {(user?.isAdmin || user?.role === 'clubs_coordinator' || user?.role === 'council_president') && (
                                   <button
                                     onClick={() => handleRemoveMember(selectedClubDetails._id || selectedClubDetails.id, member._id)}
-                                    className="text-red-600 hover:text-red-700 p-1 rounded"
+                                    className="text-red-400 hover:text-red-600 p-1"
                                     title="Remove member">
                                     <Trash2 className="w-4 h-4" />
                                   </button>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Joined: {new Date(member.joinedAt).toLocaleDateString()}
-                                </p>
+                                )}
                               </div>
                             </div>
-                          ))}
+                            <div className="grid grid-cols-2 gap-4 text-xs text-gray-600 bg-gray-50 p-2 rounded-lg">
+                              <div><span className="text-gray-400 uppercase font-bold text-[9px]">Department</span><p>{member.department || 'N/A'}</p></div>
+                              <div><span className="text-gray-400 uppercase font-bold text-[9px]">Year</span><p>{member.year || 'N/A'}</p></div>
+                            </div>
+                            {member.background && (
+                              <div className="mt-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100 text-xs text-blue-800 line-clamp-3">
+                                <span className="block text-[9px] uppercase font-bold text-blue-400 mb-1">Background / Note</span>
+                                {member.background}
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-center py-4">No approved members yet</p>
+                    <div className="text-center py-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                      <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-500 font-medium">No members found in this club record</p>
+                      <p className="text-xs text-gray-400">If you are a leader, members should appear here.</p>
+                    </div>
                   )}
                 </div>
 
