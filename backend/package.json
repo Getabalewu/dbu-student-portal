@@ -4,7 +4,7 @@
   "description": "Backend API for Debre Berhan University Student Union Management System",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node backend/server.js"
     "dev": "nodemon server.js",
     "test": "jest"
   },
