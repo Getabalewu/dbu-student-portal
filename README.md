@@ -239,3 +239,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 For assistance or suggestions, contact the DBU Student Union Development Team.
+add admin academic affairs  with username  dbu10101021 and password is Admin123# the see the page dashboard ,can post news only in accademic related, and give vote to the elction ,join in to club  and resove compliant with the student write in accademic affairs cattagory but other catagory compliant only see

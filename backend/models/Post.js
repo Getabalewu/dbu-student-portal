@@ -21,7 +21,7 @@ const postSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['General', 'Campus', 'Academic', 'Sports', 'Research', 'Cultural'],
+    enum: ['General', 'Campus', 'Academic', 'Sports', 'Research', 'Cultural', 'Club Related'],
     default: 'General'
   },
   author: {
@@ -133,33 +133,33 @@ postSchema.index({ status: 1 });
 postSchema.index({ important: 1 });
 
 // Virtual for like count
-postSchema.virtual('likeCount').get(function() {
+postSchema.virtual('likeCount').get(function () {
   return this.likes.length;
 });
 
 // Virtual for comment count
-postSchema.virtual('commentCount').get(function() {
+postSchema.virtual('commentCount').get(function () {
   return this.comments.length;
 });
 
 // Virtual for attendee count
-postSchema.virtual('attendeeCount').get(function() {
+postSchema.virtual('attendeeCount').get(function () {
   return this.attendees.length;
 });
 
 // Method to check if user has liked the post
-postSchema.methods.hasUserLiked = function(userId) {
+postSchema.methods.hasUserLiked = function (userId) {
   return this.likes.some(like => like.user.toString() === userId.toString());
 };
 
 // Method to increment views
-postSchema.methods.incrementViews = function() {
+postSchema.methods.incrementViews = function () {
   this.views += 1;
   return this.save();
 };
 
 // Set published date when status changes to published
-postSchema.pre('save', function(next) {
+postSchema.pre('save', function (next) {
   if (this.isModified('status') && this.status === 'published' && !this.publishedAt) {
     this.publishedAt = new Date();
   }

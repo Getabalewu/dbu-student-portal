@@ -8,6 +8,10 @@ import toast from "react-hot-toast";
 
 export function Latest() {
   const { user } = useAuth();
+  const isClubAdmin = user?.username === 'dbu10101040' || user?.role === 'club_admin' || user?.role === 'clubs_coordinator';
+  const isAcademicAdmin = user?.role === 'academic_affairs';
+  const isSpecialAdmin = isClubAdmin || isAcademicAdmin;
+  const canManagePostsArr = (user?.isAdmin || user?.role === 'president' || isSpecialAdmin);
   const { markAsSeen } = useNotifications();
   const [activeTab, setActiveTab] = useState("News");
   const [posts, setPosts] = useState([]);
@@ -19,7 +23,7 @@ export function Latest() {
     title: "",
     content: "",
     type: "News",
-    category: "General",
+    category: isAcademicAdmin ? "Academic" : (isClubAdmin ? "Club Related" : "General"),
     date: new Date().toISOString().split("T")[0],
     image: "",
     location: "",
@@ -66,7 +70,7 @@ export function Latest() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!user?.isAdmin && user?.role !== 'president') {
+    if (!user?.isAdmin && user?.role !== 'president' && !isSpecialAdmin) {
       toast.error("You do not have permission to create posts");
       return;
     }
@@ -111,7 +115,7 @@ export function Latest() {
         title: "",
         content: "",
         type: "News",
-        category: "General",
+        category: isAcademicAdmin ? "Academic" : (isClubAdmin ? "Club Related" : "General"),
         date: new Date().toISOString().split("T")[0],
         image: "",
         location: "",
@@ -127,7 +131,7 @@ export function Latest() {
   };
 
   const handleDeletePost = async (postId) => {
-    if (!user?.isAdmin && user?.role !== 'president') {
+    if (!user?.isAdmin && user?.role !== 'president' && !isSpecialAdmin) {
       toast.error("You do not have permission to delete posts");
       return;
     }
@@ -209,8 +213,8 @@ export function Latest() {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-6 py-4 font-medium text-lg flex-1 text-center transition-colors ${activeTab === tab
-                    ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:bg-gray-50"
+                  ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:bg-gray-50"
                   }`}>
                 {tab === "News" && "📰"} {tab === "Event" && "📅"} {tab === "Announcement" && "📢"} {tab}
               </button>
@@ -219,7 +223,7 @@ export function Latest() {
 
           <div className="p-6">
             {/* Admin Create/Edit Post Section */}
-            {(user?.isAdmin || user?.role === 'president') && (
+            {canManagePostsArr && (
               <div className="mb-8 bg-gray-50 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">
@@ -314,12 +318,21 @@ export function Latest() {
                               : setNewPost({ ...newPost, category: e.target.value })
                           }
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                          <option value="General">General</option>
-                          <option value="Campus">Campus</option>
-                          <option value="Academic">Academic</option>
-                          <option value="Sports">Sports</option>
-                          <option value="Research">Research</option>
-                          <option value="Cultural">Cultural</option>
+                          {isAcademicAdmin ? (
+                            <option value="Academic">Academic</option>
+                          ) : isClubAdmin ? (
+                            <option value="Club Related">Club Related</option>
+                          ) : (
+                            <>
+                              <option value="General">General</option>
+                              <option value="Campus">Campus</option>
+                              <option value="Academic">Academic</option>
+                              <option value="Sports">Sports</option>
+                              <option value="Research">Research</option>
+                              <option value="Cultural">Cultural</option>
+                              <option value="Club Related">Club Related</option>
+                            </>
+                          )}
                         </select>
                       </div>
 
@@ -467,8 +480,16 @@ export function Latest() {
                       onEdit={() => startEditing(post)}
                       onDelete={handleDeletePost}
                       onLike={handleLikePost}
-                      canEdit={user?.isAdmin || user?.role === 'president'}
-                      canDelete={user?.isAdmin || user?.role === 'president'}
+                      canEdit={(user?.isAdmin || user?.role === 'president') && (
+                        !isSpecialAdmin ||
+                        (isAcademicAdmin && post.category === 'Academic') ||
+                        (isClubAdmin && post.category === 'Club Related')
+                      )}
+                      canDelete={(user?.isAdmin || user?.role === 'president') && (
+                        !isSpecialAdmin ||
+                        (isAcademicAdmin && post.category === 'Academic') ||
+                        (isClubAdmin && post.category === 'Club Related')
+                      )}
                       user={user}
                     />
                   ))
@@ -529,10 +550,10 @@ function PostCard({ post, onEdit, onDelete, onLike, canEdit, canDelete, user }) 
           <div className="flex items-center space-x-2">
             <span
               className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${post.type === "News"
-                  ? "bg-blue-100 text-blue-800"
-                  : post.type === "Event"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-yellow-100 text-yellow-800"
+                ? "bg-blue-100 text-blue-800"
+                : post.type === "Event"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-yellow-100 text-yellow-800"
                 }`}>
               {post.type === "News" && "📰"}
               {post.type === "Event" && "📅"}
@@ -561,15 +582,15 @@ function PostCard({ post, onEdit, onDelete, onLike, canEdit, canDelete, user }) 
               {canEdit && (
                 <button
                   onClick={() => onEdit(post)}
-                  className="text-blue-600 hover:text-blue-700 p-1 rounded">
-                  <Edit className="w-4 h-4" />
+                  className="bg-amber-500 text-white px-3 py-1 rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium shadow-sm">
+                  Edit
                 </button>
               )}
               {canDelete && (
                 <button
                   onClick={() => onDelete(post._id || post.id)}
-                  className="text-red-600 hover:text-red-700 p-1 rounded">
-                  <Trash2 className="w-4 h-4" />
+                  className="bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm">
+                  Delete
                 </button>
               )}
             </div>

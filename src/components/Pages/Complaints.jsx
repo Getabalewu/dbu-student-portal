@@ -15,13 +15,15 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNotifications } from "../../contexts/NotificationContext";
-import { generateCaseId } from "../../data/mockData";
 import { apiService } from "../../services/api";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 export function Complaints() {
 	const { user } = useAuth();
+	const isClubAdmin = user?.username === 'dbu10101040' || user?.role === 'club_admin' || user?.role === 'clubs_coordinator';
+	const isAcademicAdmin = user?.role === 'academic_affairs';
+	const isSpecialAdmin = isClubAdmin || isAcademicAdmin;
 	const { markAsSeen } = useNotifications();
 
 	const [selectedTab, setSelectedTab] = useState("all");
@@ -49,6 +51,7 @@ export function Complaints() {
 		{ value: "housing", label: "Housing" },
 		{ value: "facilities", label: "Facilities" },
 		{ value: "disciplinary", label: "Disciplinary" },
+		{ value: "club_related", label: "Club Related" },
 		{ value: "general", label: "General" },
 	];
 
@@ -73,21 +76,21 @@ export function Complaints() {
 
 	const filteredComplaints = complaints.filter((complaint) => {
 		const matchesSearch =
-			complaint.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			complaint.description.toLowerCase().includes(searchTerm.toLowerCase());
+			complaint.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			complaint.description?.toLowerCase().includes(searchTerm.toLowerCase());
 		const matchesStatus =
 			statusFilter === "all" || complaint.status === statusFilter;
 		const matchesTab =
 			selectedTab === "all" ||
-			(selectedTab === "my" && complaint.submittedBy === user?.id) ||
+			(selectedTab === "my" && (complaint.submittedBy?._id === user?.id || complaint.submittedBy === user?.id)) ||
 			(selectedTab === "pending" && complaint.status === "submitted");
 		return matchesSearch && matchesStatus && matchesTab;
 	});
 
 	const handleSubmitComplaint = async (e) => {
 		e.preventDefault();
-		if (!newComplaintForm.title || !newComplaintForm.description) {
-			toast.error("Please fill all required fields");
+		if (!newComplaintForm.title || !newComplaintForm.description || !newComplaintForm.category) {
+			toast.error("Please fill all required fields, including category");
 			return;
 		}
 
@@ -98,7 +101,7 @@ export function Complaints() {
 			};
 
 			await apiService.createComplaint(complaintData);
-			await fetchComplaints(); // Refresh the complaints list
+			await fetchComplaints();
 			toast.success("Complaint submitted successfully!");
 			setShowNewComplaint(false);
 			setNewComplaintForm({
@@ -110,7 +113,10 @@ export function Complaints() {
 			});
 		} catch (error) {
 			console.error('Failed to submit complaint:', error);
-			toast.error(`Failed to submit complaint: ${error.message}`);
+			const errorMessage = error.response?.data?.errors
+				? error.response.data.errors.map(e => e.msg).join(', ')
+				: error.message;
+			toast.error(`Failed to submit complaint: ${errorMessage}`);
 		}
 	};
 
@@ -118,10 +124,22 @@ export function Complaints() {
 		if (!responseMessage.trim()) return;
 
 		const sendResponse = async () => {
+			const complaint = complaints.find(c => (c._id === complaintId || c.id === complaintId));
+			const canManage = user?.isAdmin && (
+				!isSpecialAdmin ||
+				(isClubAdmin && (complaint?.branch === 'club_related' || complaint?.category === 'club_related')) ||
+				(isAcademicAdmin && (complaint?.branch === 'academic' || complaint?.category === 'academic'))
+			);
+
+			if (!canManage) {
+				toast.error("You do not have permission to respond to this category");
+				return;
+			}
+
 			try {
 				await apiService.addComplaintResponse(complaintId, { message: responseMessage });
-				await fetchComplaints(); // Refresh complaints
-				toast.success("Response sent and complaint resolved");
+				await fetchComplaints();
+				toast.success("Response sent successfully");
 				setResponseMessage("");
 			} catch (error) {
 				console.error('Failed to send response:', error);
@@ -139,29 +157,33 @@ export function Complaints() {
 			return;
 		}
 
-		if (
-			!user?.isAdmin ||
-			(user?.role !== "president" && user?.role !== "student_din")
-		) {
-			toast.error("Only branch admins can upload documents");
+		if (!user?.isAdmin) {
+			toast.error("Admin privileges required for document upload");
 			return;
 		}
 
 		// Simulate document upload
-		toast.success("Document uploaded successfully to Student Din/President");
+		toast.success("Document uploaded successfully");
 		setDocumentFile(null);
 		setShowDocumentUpload(false);
 	};
 
 	const handleResolveComplaint = async (complaintId) => {
-		if (!user?.isAdmin) {
-			toast.error("Only admins can resolve complaints");
+		const complaint = complaints.find(c => (c._id === complaintId || c.id === complaintId));
+		const canManage = user?.isAdmin && (
+			!isSpecialAdmin ||
+			(isClubAdmin && (complaint?.branch === 'club_related' || complaint?.category === 'club_related')) ||
+			(isAcademicAdmin && (complaint?.branch === 'academic' || complaint?.category === 'academic'))
+		);
+
+		if (!canManage) {
+			toast.error("You do not have permission to manage this category");
 			return;
 		}
 
 		try {
 			await apiService.updateComplaintStatus(complaintId, "resolved");
-			await fetchComplaints(); // Refresh complaints
+			await fetchComplaints();
 			toast.success("Complaint resolved successfully");
 		} catch (error) {
 			console.error('Failed to resolve complaint:', error);
@@ -170,8 +192,15 @@ export function Complaints() {
 	};
 
 	const handleDeleteComplaint = async (complaintId) => {
-		if (!user?.isAdmin) {
-			toast.error("Only admins can delete complaints");
+		const complaint = complaints.find(c => (c._id === complaintId || c.id === complaintId));
+		const canManage = user?.isAdmin && (
+			!isSpecialAdmin ||
+			(isClubAdmin && (complaint?.branch === 'club_related' || complaint?.category === 'club_related')) ||
+			(isAcademicAdmin && (complaint?.branch === 'academic' || complaint?.category === 'academic'))
+		);
+
+		if (!canManage) {
+			toast.error("You do not have permission to delete this category");
 			return;
 		}
 
@@ -188,6 +217,7 @@ export function Complaints() {
 			toast.error(`Failed to delete complaint: ${error.message}`);
 		}
 	};
+
 	const getStatusIcon = (status) => {
 		switch (status) {
 			case "submitted":
@@ -231,21 +261,7 @@ export function Complaints() {
 		}
 	};
 
-	// Component for individual complaint card
-	const ComplaintCard = ({ 
-		complaint, 
-		user, 
-		selectedComplaint, 
-		setSelectedComplaint, 
-		responseMessage, 
-		setResponseMessage, 
-		handleSendResponse, 
-		handleResolveComplaint,
-		handleDeleteComplaint,
-		getStatusIcon,
-		getStatusColor,
-		getPriorityColor
-	}) => (
+	const ComplaintCard = ({ complaint }) => (
 		<div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
 			<div className="flex justify-between">
 				<div>
@@ -270,22 +286,30 @@ export function Complaints() {
 							{complaint.priority} priority
 						</span>
 						<span className="text-gray-500">
-							{new Date(complaint.submittedAt || complaint.createdAt).toLocaleDateString()}
+							{new Date(complaint.createdAt).toLocaleDateString()}
 						</span>
 					</div>
 				</div>
 				<div className="flex items-center space-x-2">
-					{user?.isAdmin && complaint.status !== "resolved" && (
+					{user?.isAdmin && (
 						<button
 							onClick={() => handleResolveComplaint(complaint._id || complaint.id)}
-							className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors">
+							disabled={isSpecialAdmin && !(isAcademicAdmin && (complaint.branch === 'academic' || complaint.category === 'academic')) && !(isClubAdmin && (complaint.branch === 'club_related' || complaint.category === 'club_related'))}
+							className={`px-3 py-1 rounded text-sm transition-colors ${(isSpecialAdmin && !(isAcademicAdmin && (complaint.branch === 'academic' || complaint.category === 'academic')) && !(isClubAdmin && (complaint.branch === 'club_related' || complaint.category === 'club_related')))
+								? "bg-gray-300 text-gray-400 cursor-not-allowed"
+								: "bg-green-600 text-white hover:bg-green-700"
+								} ${complaint.status === "resolved" ? "hidden" : ""}`}>
 							Resolve
 						</button>
 					)}
 					{user?.isAdmin && (
 						<button
 							onClick={() => handleDeleteComplaint(complaint._id || complaint.id)}
-							className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors">
+							disabled={isSpecialAdmin && !(isAcademicAdmin && (complaint.branch === 'academic' || complaint.category === 'academic')) && !(isClubAdmin && (complaint.branch === 'club_related' || complaint.category === 'club_related'))}
+							className={`px-3 py-1 rounded text-sm transition-colors ${(isSpecialAdmin && !(isAcademicAdmin && (complaint.branch === 'academic' || complaint.category === 'academic')) && !(isClubAdmin && (complaint.branch === 'club_related' || complaint.category === 'club_related')))
+								? "bg-gray-300 text-gray-400 cursor-not-allowed"
+								: "bg-red-600 text-white hover:bg-red-700"
+								}`}>
 							Delete
 						</button>
 					)}
@@ -330,12 +354,17 @@ export function Complaints() {
 								type="text"
 								value={responseMessage}
 								onChange={(e) => setResponseMessage(e.target.value)}
-								className="flex-1 border border-gray-300 rounded px-3 py-2"
-								placeholder="Write a response..."
+								disabled={isSpecialAdmin && !(isAcademicAdmin && (complaint.branch === 'academic' || complaint.category === 'academic')) && !(isClubAdmin && (complaint.branch === 'club_related' || complaint.category === 'club_related'))}
+								className="flex-1 border border-gray-300 rounded px-3 py-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
+								placeholder={isSpecialAdmin && !(isAcademicAdmin && (complaint.branch === 'academic' || complaint.category === 'academic')) && !(isClubAdmin && (complaint.branch === 'club_related' || complaint.category === 'club_related')) ? "You don't have permission to respond" : "Write a response..."}
 							/>
 							<button
 								onClick={() => handleSendResponse(complaint._id || complaint.id)}
-								className="bg-blue-600 text-white px-4 py-2 rounded">
+								disabled={isSpecialAdmin && !(isAcademicAdmin && (complaint.branch === 'academic' || complaint.category === 'academic')) && !(isClubAdmin && (complaint.branch === 'club_related' || complaint.category === 'club_related'))}
+								className={`px-4 py-2 rounded transition-colors ${(isSpecialAdmin && !(isAcademicAdmin && (complaint.branch === 'academic' || complaint.category === 'academic')) && !(isClubAdmin && (complaint.branch === 'club_related' || complaint.category === 'club_related')))
+										? "bg-gray-300 text-gray-400 cursor-not-allowed"
+										: "bg-blue-600 text-white hover:bg-blue-700"
+									}`}>
 								<Send className="w-4 h-4" />
 							</button>
 						</div>
@@ -430,16 +459,15 @@ export function Complaints() {
 							<button
 								key={tab}
 								onClick={() => setSelectedTab(tab)}
-								className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-									selectedTab === tab
-										? "bg-blue-600 text-white"
-										: "text-gray-500 hover:bg-gray-100"
-								}`}>
+								className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${selectedTab === tab
+									? "bg-blue-600 text-white"
+									: "text-gray-500 hover:bg-gray-100"
+									}`}>
 								{tab === "all"
 									? "All"
 									: tab === "my"
-									? "My Complaints"
-									: "Pending"}
+										? "My Complaints"
+										: "Pending"}
 							</button>
 						))}
 					</div>
@@ -453,23 +481,19 @@ export function Complaints() {
 					</div>
 				) : (
 					<div className="space-y-4">
-						{filteredComplaints.map((complaint) => (
-							<ComplaintCard
-								key={complaint._id || complaint.id}
-								complaint={complaint}
-								user={user}
-								selectedComplaint={selectedComplaint}
-								setSelectedComplaint={setSelectedComplaint}
-								responseMessage={responseMessage}
-								setResponseMessage={setResponseMessage}
-								handleSendResponse={handleSendResponse}
-								handleResolveComplaint={handleResolveComplaint}
-								handleDeleteComplaint={handleDeleteComplaint}
-								getStatusIcon={getStatusIcon}
-								getStatusColor={getStatusColor}
-								getPriorityColor={getPriorityColor}
-							/>
-						))}
+						{filteredComplaints.length > 0 ? (
+							filteredComplaints.map((complaint) => (
+								<ComplaintCard
+									key={complaint._id || complaint.id}
+									complaint={complaint}
+								/>
+							))
+						) : (
+							<div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+								<MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4 opacity-20" />
+								<p className="text-gray-500">No complaints found matching your criteria</p>
+							</div>
+						)}
 					</div>
 				)}
 
@@ -514,9 +538,10 @@ export function Complaints() {
 
 									<div>
 										<label className="block text-sm font-medium text-gray-700 mb-2">
-											Category
+											Category *
 										</label>
 										<select
+											required
 											value={newComplaintForm.category}
 											onChange={(e) =>
 												setNewComplaintForm({
@@ -624,8 +649,7 @@ export function Complaints() {
 									</div>
 
 									<p className="text-sm text-gray-600">
-										This document will be sent to Student Din and President for
-										review.
+										This document will be sent for review.
 									</p>
 
 									<div className="flex justify-end space-x-3">

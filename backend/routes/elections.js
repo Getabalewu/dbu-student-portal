@@ -287,7 +287,7 @@ router.post('/:id/vote', protect, async (req, res) => {
 
     if ((req.user.isAdmin || req.user.role === 'admin') &&
       req.user.username !== 'dbu10101040' &&
-      req.user.username !== 'dbu1010101040')
+      req.user.username !== 'dbu10101021')
       return res.status(403).json({ success: false, message: 'Administrators cannot vote' });
 
     const election = await Election.findById(req.params.id);

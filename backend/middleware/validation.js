@@ -4,6 +4,9 @@ const { body, validationResult } = require('express-validator');
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('--- VALIDATION FAILED ---');
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+    console.log('Errors:', JSON.stringify(errors.array(), null, 2));
     return res.status(400).json({
       success: false,
       message: 'Validation failed',
@@ -61,7 +64,8 @@ const validateComplaint = [
     .isLength({ min: 10, max: 2000 })
     .withMessage('Description must be between 10 and 2000 characters'),
   body('category')
-    .isIn(['academic', 'dining', 'housing', 'facilities', 'disciplinary', 'general'])
+    .trim()
+    .isIn(['academic', 'dining', 'housing', 'facilities', 'disciplinary', 'club_related', 'general'])
     .withMessage('Please select a valid category'),
   body('priority')
     .optional()
@@ -74,43 +78,15 @@ const validateComplaint = [
 const validateClub = [
   body('name')
     .trim()
-    .isLength({ min: 3, max: 100 })
-    .withMessage('Club name must be between 3 and 100 characters'),
-  body('description')
-    .trim()
-    .isLength({ min: 10, max: 1000 })
-    .withMessage('Description must be between 10 and 1000 characters'),
-  body('category')
-    .isIn(['Academic', 'Sports', 'Cultural', 'Technology', 'Service', 'Arts', 'Religious', 'Professional'])
-    .withMessage('Please select a valid category'),
-  body('founded')
     .notEmpty()
-    .withMessage('Founded year is required'),
-  handleValidationErrors
-];
-
-// Election validation rules
-const validateElection = [
-  body('title')
-    .trim()
-    .isLength({ min: 5, max: 200 })
-    .withMessage('Title must be between 5 and 200 characters'),
+    .withMessage('Club name is required'),
   body('description')
     .trim()
-    .isLength({ min: 10, max: 1000 })
-    .withMessage('Description must be between 10 and 1000 characters'),
-  body('startDate')
-    .isISO8601()
-    .withMessage('Please provide a valid start date'),
-  body('endDate')
-    .isISO8601()
-    .withMessage('Please provide a valid end date')
-    .custom((endDate, { req }) => {
-      if (new Date(endDate) <= new Date(req.body.startDate)) {
-        throw new Error('End date must be after start date');
-      }
-      return true;
-    }),
+    .notEmpty()
+    .withMessage('Club description is required'),
+  body('category')
+    .isIn(['Academic', 'Sports', 'Cultural', 'Social', 'Other'])
+    .withMessage('Please select a valid club category'),
   handleValidationErrors
 ];
 
@@ -118,23 +94,58 @@ const validateElection = [
 const validatePost = [
   body('title')
     .trim()
-    .isLength({ min: 5, max: 200 })
-    .withMessage('Title must be between 5 and 200 characters'),
+    .notEmpty()
+    .withMessage('Title is required')
+    .isLength({ max: 200 })
+    .withMessage('Title cannot exceed 200 characters'),
   body('content')
     .trim()
-    .isLength({ min: 10, max: 5000 })
-    .withMessage('Content must be between 10 and 5000 characters'),
-  body('type')
-    .isIn(['News', 'Event', 'Announcement'])
-    .withMessage('Type must be News, Event, or Announcement'),
+    .notEmpty()
+    .withMessage('Content is required'),
   body('category')
-    .optional()
-    .isIn(['General', 'Campus', 'Academic', 'Sports', 'Research', 'Cultural'])
+    .isIn(['News', 'Event', 'Announcement', 'General'])
     .withMessage('Please select a valid category'),
-  body('image')
-    .optional({ checkFalsy: true })
-    .isURL()
-    .withMessage('Please provide a valid image URL'),
+  handleValidationErrors
+];
+
+// Election validation rules
+const validateElection = [
+  body('title')
+    .trim()
+    .notEmpty()
+    .withMessage('Title is required'),
+  body('description')
+    .trim()
+    .notEmpty()
+    .withMessage('Description is required'),
+  body('startDate')
+    .isISO8601()
+    .withMessage('Valid start date is required'),
+  body('endDate')
+    .isISO8601()
+    .withMessage('Valid end date is required'),
+  handleValidationErrors
+];
+
+// Candidate validation rules
+const validateCandidate = [
+  body('name')
+    .trim()
+    .notEmpty()
+    .withMessage('Candidate name is required'),
+  body('manifesto')
+    .trim()
+    .isLength({ min: 10 })
+    .withMessage('Manifesto must be at least 10 characters long'),
+  handleValidationErrors
+];
+
+// Feedback validation rules
+const validateFeedback = [
+  body('content')
+    .trim()
+    .notEmpty()
+    .withMessage('Feedback content is required'),
   handleValidationErrors
 ];
 
@@ -142,19 +153,29 @@ const validatePost = [
 const validateContact = [
   body('name')
     .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Name must be between 2 and 100 characters'),
+    .notEmpty()
+    .withMessage('Name is required')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Name must be between 2 and 50 characters'),
   body('email')
     .isEmail()
-    .normalizeEmail()
     .withMessage('Please provide a valid email'),
+  body('subject')
+    .trim()
+    .notEmpty()
+    .withMessage('Subject is required')
+    .isLength({ min: 3, max: 100 })
+    .withMessage('Subject must be between 3 and 100 characters'),
   body('message')
     .trim()
+    .notEmpty()
+    .withMessage('Message is required')
     .isLength({ min: 10, max: 2000 })
     .withMessage('Message must be between 10 and 2000 characters'),
   body('category')
     .optional()
-    .isIn(['academic', 'clubs', 'dining', 'sports', 'general'])
+    .trim()
+    .isIn(['general', 'support', 'feedback', 'club_related', 'academic'])
     .withMessage('Please select a valid category'),
   handleValidationErrors
 ];
@@ -164,8 +185,9 @@ module.exports = {
   validateUserLogin,
   validateComplaint,
   validateClub,
-  validateElection,
   validatePost,
-  validateContact,
-  handleValidationErrors
+  validateElection,
+  validateCandidate,
+  validateFeedback,
+  validateContact
 };

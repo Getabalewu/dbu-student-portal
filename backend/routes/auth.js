@@ -215,6 +215,8 @@ router.post("/login", validateUserLogin, async (req, res) => {
 		return res.status(500).json({
 			success: false,
 			message: "Server error during login",
+			error: error.message,
+			stack: error.stack
 		});
 	}
 });

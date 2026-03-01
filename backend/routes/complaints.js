@@ -20,8 +20,11 @@ router.get('/', protect, async (req, res) => {
     // Build query
     let query = {};
 
-    // Non-admin users can only see their own complaints
-    if (!req.user.isAdmin && !req.user.role === 'admin') {
+    // Non-admin and non-privileged users can only see their own complaints
+    const privilegedRoles = ["admin", "president", "council_president", "council_secretary", "clubs_coordinator", "academic_affairs"];
+    const isPrivileged = req.user.isAdmin || privilegedRoles.includes(req.user.role);
+
+    if (!isPrivileged) {
       // For mock users, don't filter by submittedBy since they won't have real ObjectIds
       if (req.user.id && !req.user.id.toString().includes('admin_') &&
         !req.user.id.toString().includes('student_') &&
@@ -162,6 +165,7 @@ router.get('/:id', protect, async (req, res) => {
 // @route   POST /api/complaints
 // @access  Private
 router.post('/', protect, validateComplaint, async (req, res) => {
+  console.log('Received complaint submission:', req.body);
   try {
     const { title, description, category, priority, branch } = req.body;
 
@@ -204,18 +208,26 @@ router.patch('/:id/status', protect, adminOnly, async (req, res) => {
       });
     }
 
-    if (!req.params.id || req.params.id === 'undefined') {
-      return res.status(400).json({
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) {
+      return res.status(404).json({ success: false, message: 'Complaint not found' });
+    }
+
+    // Restricted Admin Check
+    const isClubAdmin = req.user.username === 'dbu10101040' || req.user.role === 'club_admin';
+    const isAcademicAdmin = req.user.role === 'academic_affairs';
+
+    if (isClubAdmin && complaint.category !== 'club_related' && complaint.branch !== 'club_related') {
+      return res.status(403).json({
         success: false,
-        message: 'Invalid complaint ID'
+        message: 'Access denied. You can only manage club-related complaints.'
       });
     }
 
-    const complaint = await Complaint.findById(req.params.id);
-    if (!complaint) {
-      return res.status(404).json({
+    if (isAcademicAdmin && complaint.category !== 'academic' && complaint.branch !== 'academic') {
+      return res.status(403).json({
         success: false,
-        message: 'Complaint not found'
+        message: 'Access denied. You can only manage academic-related complaints.'
       });
     }
 
@@ -256,18 +268,26 @@ router.post('/:id/responses', protect, adminOnly, async (req, res) => {
       });
     }
 
-    if (!req.params.id || req.params.id === 'undefined') {
-      return res.status(400).json({
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) {
+      return res.status(404).json({ success: false, message: 'Complaint not found' });
+    }
+
+    // Restricted Admin Check
+    const isClubAdmin = req.user.username === 'dbu10101040' || req.user.role === 'club_admin';
+    const isAcademicAdmin = req.user.role === 'academic_affairs';
+
+    if (isClubAdmin && complaint.category !== 'club_related' && complaint.branch !== 'club_related') {
+      return res.status(403).json({
         success: false,
-        message: 'Invalid complaint ID'
+        message: 'Access denied. You can only respond to club-related complaints.'
       });
     }
 
-    const complaint = await Complaint.findById(req.params.id);
-    if (!complaint) {
-      return res.status(404).json({
+    if (isAcademicAdmin && complaint.category !== 'academic' && complaint.branch !== 'academic') {
+      return res.status(403).json({
         success: false,
-        message: 'Complaint not found'
+        message: 'Access denied. You can only respond to academic-related complaints.'
       });
     }
 
@@ -312,9 +332,24 @@ router.patch('/:id/assign', protect, adminOnly, async (req, res) => {
 
     const complaint = await Complaint.findById(req.params.id);
     if (!complaint) {
-      return res.status(404).json({
+      return res.status(404).json({ success: false, message: 'Complaint not found' });
+    }
+
+    // Restricted Admin Check
+    const isClubAdmin = req.user.username === 'dbu10101040' || req.user.role === 'club_admin';
+    const isAcademicAdmin = req.user.role === 'academic_affairs';
+
+    if (isClubAdmin && complaint.category !== 'club_related' && complaint.branch !== 'club_related') {
+      return res.status(403).json({
         success: false,
-        message: 'Complaint not found'
+        message: 'Access denied. You can only assign club-related complaints.'
+      });
+    }
+
+    if (isAcademicAdmin && complaint.category !== 'academic' && complaint.branch !== 'academic') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only assign academic-related complaints.'
       });
     }
 
@@ -419,18 +454,26 @@ router.get('/stats/overview', protect, adminOnly, async (req, res) => {
 // @access  Private/Admin
 router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
-    if (!req.params.id || req.params.id === 'undefined') {
-      return res.status(400).json({
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) {
+      return res.status(404).json({ success: false, message: 'Complaint not found' });
+    }
+
+    // Restricted Admin Check
+    const isClubAdmin = req.user.username === 'dbu10101040' || req.user.role === 'club_admin';
+    const isAcademicAdmin = req.user.role === 'academic_affairs';
+
+    if (isClubAdmin && complaint.category !== 'club_related' && complaint.branch !== 'club_related') {
+      return res.status(403).json({
         success: false,
-        message: 'Invalid complaint ID'
+        message: 'Access denied. You can only delete club-related complaints.'
       });
     }
 
-    const complaint = await Complaint.findById(req.params.id);
-    if (!complaint) {
-      return res.status(404).json({
+    if (isAcademicAdmin && complaint.category !== 'academic' && complaint.branch !== 'academic') {
+      return res.status(403).json({
         success: false,
-        message: 'Complaint not found'
+        message: 'Access denied. You can only delete academic-related complaints.'
       });
     }
 

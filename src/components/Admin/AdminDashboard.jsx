@@ -366,7 +366,8 @@ export function AdminDashboard() {
           <div className="flex items-center mt-2">
             <Shield className="w-4 h-4 text-blue-600 mr-1" />
             <span className="text-sm text-blue-600 font-medium">
-              {user?.role === 'admin' ? 'System Administrator' : 'Admin User'}
+              {user?.role === 'admin' ? 'System Administrator' :
+                user?.role === 'academic_affairs' ? 'Academic Affairs Administrator' : 'Admin User'}
             </span>
           </div>
         </div>

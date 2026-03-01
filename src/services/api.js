@@ -25,7 +25,12 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+        const error = new Error(data.message || `HTTP error! status: ${response.status}`);
+        error.response = { data };
+        if (data.errors) {
+          console.error('Validation errors:', data.errors);
+        }
+        throw error;
       }
 
       return data;

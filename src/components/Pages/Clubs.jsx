@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 
 export function Clubs() {
   const { user } = useAuth();
+  const isAcademicAdmin = user?.role === 'academic_affairs';
   const { markAsSeen } = useNotifications();
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
@@ -101,7 +102,7 @@ export function Clubs() {
       return;
     }
 
-    if (user.isAdmin) {
+    if (user.isAdmin && !isAcademicAdmin) {
       // Show club details for admin instead of join form
       handleViewMembers(club);
       return;
@@ -378,7 +379,7 @@ export function Clubs() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Admin Controls */}
-        {user?.isAdmin && (
+        {user?.isAdmin && !isAcademicAdmin && (
           <div className="mb-8 bg-white rounded-xl p-6 shadow-sm">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">
@@ -683,13 +684,13 @@ export function Clubs() {
                         {club.category}
                       </span>
                     </div>
-                    {user?.isAdmin && (
+                    {user?.isAdmin && !isAcademicAdmin && (
                       <div className="absolute top-4 right-4 flex space-x-2">
                         <button
                           onClick={() => handleEditClub(club)}
-                          className="bg-amber-500 text-white p-2 rounded-full hover:bg-amber-600 transition-colors"
+                          className="bg-amber-500 text-white px-3 py-1 rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium shadow-sm"
                           title="Edit Club">
-                          <Edit className="w-4 h-4" />
+                          Edit
                         </button>
                         <button
                           onClick={() => fetchJoinRequests(club._id || club.id)}
@@ -699,9 +700,9 @@ export function Clubs() {
                         </button>
                         <button
                           onClick={() => handleDeleteClub(club._id || club.id)}
-                          className="bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors"
+                          className="bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm"
                           title="Delete Club">
-                          ✕
+                          Delete
                         </button>
                       </div>
                     )}
@@ -777,15 +778,15 @@ export function Clubs() {
                     </div>
 
                     <button
-                      onClick={() => user?.isAdmin ? handleViewMembers(club) : handleJoinClub(club)}
-                      className={`w-full py-3 rounded-xl font-bold transition-all transform hover:scale-[1.02] shadow-md border-b-4 active:border-b-0 active:translate-y-1 ${user?.isAdmin
+                      onClick={() => (user?.isAdmin && !isAcademicAdmin) ? handleViewMembers(club) : handleJoinClub(club)}
+                      className={`w-full py-3 rounded-xl font-bold transition-all transform hover:scale-[1.02] shadow-md border-b-4 active:border-b-0 active:translate-y-1 ${(user?.isAdmin && !isAcademicAdmin)
                         ? "bg-green-600 text-white hover:bg-green-700 border-green-800"
                         : "bg-blue-600 text-white hover:bg-blue-700 border-blue-800"
                         }`}>
                       <div className="flex items-center justify-center gap-2">
                         <Users className="w-5 h-5" />
                         <span>
-                          {user?.isAdmin
+                          {(user?.isAdmin && !isAcademicAdmin)
                             ? "Manage Club & View Members"
                             : "Join Club"}
                         </span>
@@ -1014,9 +1015,9 @@ export function Clubs() {
                                 {(user?.isAdmin || user?.role === 'clubs_coordinator' || user?.role === 'council_president') && (
                                   <button
                                     onClick={() => handleRemoveMember(selectedClubDetails._id || selectedClubDetails.id, member._id)}
-                                    className="text-red-400 hover:text-red-600 p-1"
+                                    className="bg-red-100 text-red-600 px-2 py-1 rounded text-[10px] font-bold uppercase hover:bg-red-200 transition-colors"
                                     title="Remove member">
-                                    <Trash2 className="w-4 h-4" />
+                                    Remove
                                   </button>
                                 )}
                               </div>

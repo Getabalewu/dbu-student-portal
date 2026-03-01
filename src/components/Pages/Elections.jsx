@@ -20,6 +20,10 @@ import toast from "react-hot-toast";
 
 export function Elections() {
   const { user } = useAuth();
+  const isClubAdmin = user?.username === 'dbu10101040' || user?.role === 'club_admin' || user?.role === 'clubs_coordinator';
+  const isAcademicAdmin = user?.role === 'academic_affairs';
+  const isSpecialAdmin = isClubAdmin || isAcademicAdmin;
+  const isElectionAdmin = (user?.isAdmin || user?.role === 'president' || user?.role === 'council_president') && !isSpecialAdmin;
   const { markAsSeen } = useNotifications();
   const [selectedTab, setSelectedTab] = useState("all");
   const [selectedElection, setSelectedElection] = useState(null);
@@ -77,19 +81,24 @@ export function Elections() {
       setElections(electionsData);
 
       // Check which elections the user has voted in
-      if (user && !user.isAdmin) {
-        const votedIds = new Set();
-        electionsData.forEach(election => {
-          if (election.voters && Array.isArray(election.voters)) {
-            const hasVoted = election.voters.some(voter =>
-              voter.user && (voter.user._id === user.id || voter.user === user.id)
-            );
-            if (hasVoted) {
-              votedIds.add(election._id || election.id);
+      if (user) {
+        const isClubAdmin = user.username === 'dbu10101040' || user.role === 'club_admin';
+        const isAcademicAdmin = user.role === 'academic_affairs';
+        const isSpecialAdmin = isClubAdmin || isAcademicAdmin;
+        if (!user.isAdmin || isSpecialAdmin) {
+          const votedIds = new Set();
+          electionsData.forEach(election => {
+            if (election.voters && Array.isArray(election.voters)) {
+              const hasVoted = election.voters.some(voter =>
+                voter.user && (voter.user._id === user.id || voter.user === user.id)
+              );
+              if (hasVoted) {
+                votedIds.add(election._id || election.id);
+              }
             }
-          }
-        });
-        setVotedElections(votedIds);
+          });
+          setVotedElections(votedIds);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch elections:", error);
@@ -174,7 +183,10 @@ export function Elections() {
   const handleUpdateElection = async (e) => {
     e.preventDefault();
 
-    const isElectionAdmin = user?.isAdmin || user?.role === 'president' || user?.role === 'council_president';
+    const isClubAdmin = user?.username === 'dbu10101040' || user?.role === 'club_admin';
+    const isAcademicAdmin = user?.role === 'academic_affairs';
+    const isSpecialAdmin = isClubAdmin || isAcademicAdmin;
+    const isElectionAdmin = (user?.isAdmin || user?.role === 'president' || user?.role === 'council_president') && !isSpecialAdmin;
     if (!isElectionAdmin) {
       toast.error("You do not have permission to update elections");
       return;
@@ -234,7 +246,10 @@ export function Elections() {
   const handleCreateElection = async (e) => {
     e.preventDefault();
 
-    const isElectionAdmin = user?.isAdmin || user?.role === 'president' || user?.role === 'council_president';
+    const isClubAdmin = user?.username === 'dbu10101040' || user?.role === 'club_admin';
+    const isAcademicAdmin = user?.role === 'academic_affairs';
+    const isSpecialAdmin = isClubAdmin || isAcademicAdmin;
+    const isElectionAdmin = (user?.isAdmin || user?.role === 'president' || user?.role === 'council_president') && !isSpecialAdmin;
     if (!isElectionAdmin) {
       toast.error("You do not have permission to create elections");
       return;
@@ -304,7 +319,10 @@ export function Elections() {
     }
 
     // Council level roles (excluding clubs coordinator who is a student role usually) cannot vote
-    const isGlobalAdmin = user.isAdmin || user.role === 'admin' || user.role === 'council_president';
+    const isClubAdmin = user?.username === 'dbu10101040' || user?.role === 'club_admin';
+    const isAcademicAdmin = user?.role === 'academic_affairs';
+    const isSpecialAdmin = isClubAdmin || isAcademicAdmin;
+    const isGlobalAdmin = (user.isAdmin || user.role === 'admin' || user.role === 'council_president') && !isSpecialAdmin;
     if (isGlobalAdmin) {
       toast.error("Global administrators cannot vote in elections");
       return;
@@ -335,7 +353,11 @@ export function Elections() {
   };
 
   const handleDeleteElection = async (electionId) => {
-    if (!user?.isAdmin && user?.role !== 'president') {
+    const isClubAdmin = user?.username === 'dbu10101040' || user?.role === 'club_admin';
+    const isAcademicAdmin = user?.role === 'academic_affairs';
+    const isSpecialAdmin = isClubAdmin || isAcademicAdmin;
+    const canDelete = (user?.isAdmin || user?.role === 'president') && !isSpecialAdmin;
+    if (!canDelete) {
       toast.error("You do not have permission to delete elections");
       return;
     }
@@ -355,7 +377,10 @@ export function Elections() {
   };
 
   const announceResults = async (electionId) => {
-    const isElectionAdmin = user?.isAdmin || user?.role === 'president' || user?.role === 'council_president';
+    const isClubAdmin = user?.username === 'dbu10101040' || user?.role === 'club_admin';
+    const isAcademicAdmin = user?.role === 'academic_affairs';
+    const isSpecialAdmin = isClubAdmin || isAcademicAdmin;
+    const isElectionAdmin = (user?.isAdmin || user?.role === 'president' || user?.role === 'council_president') && !isSpecialAdmin;
     if (!isElectionAdmin) {
       toast.error("You do not have permission to announce results");
       return;
@@ -424,7 +449,7 @@ export function Elections() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Admin Controls */}
-        {(user?.isAdmin || user?.role === 'president' || user?.role === 'council_president') && (
+        {isElectionAdmin && (
           <div className="mb-8 bg-white rounded-xl p-6 shadow-sm">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">
@@ -732,8 +757,8 @@ export function Elections() {
                           <button
                             type="button"
                             onClick={() => handleRemoveCandidate(index)}
-                            className="text-red-600 hover:text-red-700">
-                            <Trash2 className="w-4 h-4" />
+                            className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold uppercase hover:bg-red-200 transition-colors">
+                            Remove
                           </button>
                         </div>
                       ))}
@@ -824,17 +849,19 @@ export function Elections() {
                         <span className="ml-1 capitalize">{election.status}</span>
                       </span>
                       <div className="flex items-center space-x-1">
-                        {(user?.isAdmin || user?.role === 'president' || user?.role === 'council_president') && (
+                        {isElectionAdmin && (
                           <>
                             <button
                               onClick={() => startEditing(election)}
-                              className="text-blue-600 hover:text-blue-700 p-1">
-                              <Edit className="w-4 h-4" />
+                              className="bg-amber-500 text-white px-3 py-1 rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium shadow-sm"
+                              title="Edit Election">
+                              Edit
                             </button>
                             <button
                               onClick={() => handleDeleteElection(election._id || election.id)}
-                              className="text-red-600 hover:text-red-700 p-1">
-                              <Trash2 className="w-4 h-4" />
+                              className="bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm"
+                              title="Delete Election">
+                              Delete
                             </button>
                           </>
                         )}
@@ -897,7 +924,7 @@ export function Elections() {
 
                   {/* Actions */}
                   <div className="flex space-x-3">
-                    {election.status === "active" && !user?.isAdmin && (
+                    {election.status === "active" && (!user?.isAdmin || isSpecialAdmin) && (
                       <motion.button
                         whileHover={{ scale: votedElections.has(election._id || election.id) ? 1 : 1.02 }}
                         whileTap={{ scale: votedElections.has(election._id || election.id) ? 1 : 0.98 }}
@@ -930,7 +957,7 @@ export function Elections() {
                       View Details
                     </motion.button>
 
-                    {election.status === "completed" && (user?.isAdmin || user?.role === 'president' || user?.role === 'council_president') && !election.resultsPublished && (
+                    {election.status === "completed" && isElectionAdmin && !election.resultsPublished && (
                       <button
                         onClick={() => announceResults(election._id || election.id)}
                         className="bg-yellow-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-yellow-700 transition-colors">
@@ -996,7 +1023,7 @@ export function Elections() {
                   </div>
                 </div>
 
-                {!user?.isAdmin && votedElections.has(selectedElection._id || selectedElection.id) && (
+                {!isElectionAdmin && votedElections.has(selectedElection._id || selectedElection.id) && (
                   <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                     <p className="text-green-800 font-medium flex items-center">
                       <CheckCircle className="w-5 h-5 mr-2" />
@@ -1063,7 +1090,7 @@ export function Elections() {
 
                         {/* Only show vote button for students who haven't voted yet */}
                         {selectedElection.status === "active" &&
-                          !user?.isAdmin && user && (
+                          (!user?.isAdmin || isSpecialAdmin) && user && (
                             votedElections.has(selectedElection._id || selectedElection.id) ? (
                               <div className="w-full mt-4 py-2 px-4 rounded-lg bg-gray-100 text-gray-600 text-center font-medium">
                                 You have already voted in this election
@@ -1092,7 +1119,7 @@ export function Elections() {
                 </div>
 
                 {/* Admin: Show Voters List */}
-                {user?.isAdmin && selectedElection.voters && selectedElection.voters.length > 0 && (
+                {isElectionAdmin && selectedElection.voters && selectedElection.voters.length > 0 && (
                   <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                     <h4 className="font-semibold text-blue-900 mb-4">
                       Voters List ({selectedElection.voters.length} total votes)
@@ -1122,7 +1149,7 @@ export function Elections() {
                   </div>
                 )}
 
-                {user?.isAdmin && (selectedElection.status === "completed" || selectedElection.status === "active") && (
+                {isElectionAdmin && (selectedElection.status === "completed" || selectedElection.status === "active") && (
                   <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                     <h4 className="font-semibold text-gray-900 mb-2">
                       {selectedElection.status === "completed" ? "Final Results" : "Current Vote Count"}

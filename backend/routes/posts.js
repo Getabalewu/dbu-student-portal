@@ -132,11 +132,12 @@ router.post('/', protect, adminOnly, validatePost, async (req, res) => {
 
     console.log('Received post data:', req.body);
     console.log('User creating post:', req.user);
+    const isAcademicAffairs = req.user.role === 'academic_affairs';
     const postData = {
       title,
       content,
       type,
-      category: category || 'General',
+      category: isAcademicAffairs ? 'Academic' : (category || 'General'),
       date: date ? new Date(date) : new Date(),
       author: req.user._id || req.user.id,
       image,
@@ -213,7 +214,14 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     // Update basic fields
     if (title) post.title = title;
     if (content) post.content = content;
-    if (category) post.category = category;
+
+    // Category restriction for academic_affairs
+    if (req.user.role === 'academic_affairs') {
+      post.category = 'Academic';
+    } else if (category) {
+      post.category = category;
+    }
+
     if (image) post.image = image;
     if (tags) post.tags = tags;
     if (status) post.status = status;

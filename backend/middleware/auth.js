@@ -91,7 +91,7 @@ const protect = async (req, res, next) => {
 
 // Admin or Council level access required
 const adminOnly = (req, res, next) => {
-	const privilegedRoles = ["admin", "president", "council_president", "council_secretary", "clubs_coordinator"];
+	const privilegedRoles = ["admin", "president", "council_president", "council_secretary", "clubs_coordinator", "academic_affairs"];
 	if (req.user && (req.user.isAdmin || privilegedRoles.includes(req.user.role))) {
 		next();
 	} else {
