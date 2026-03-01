@@ -29,7 +29,10 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === "production"
-        ? ["https://your-frontend-domain.com"]
+        ? [
+          "https://dbu-student-portal-tpgv-5xjxck6cd-getabalewus-projects.vercel.app",
+          process.env.FRONTEND_URL || "https://your-frontend-domain.com"
+        ]
         : ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"],
     credentials: true,
   })
@@ -109,7 +112,7 @@ const connectDB = async (retries = 5, delay = 5000) => {
       retryWrites: true,
       w: 'majority'
     });
-    
+
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`✅ Database: ${conn.connection.name}`);
 
@@ -121,9 +124,9 @@ const connectDB = async (retries = 5, delay = 5000) => {
     }
   } catch (error) {
     console.error(`❌ Database connection error (${retries} retries left):`, error.message);
-    
+
     if (retries > 0) {
-      console.log(`🔄 Retrying connection in ${delay/1000} seconds...`);
+      console.log(`🔄 Retrying connection in ${delay / 1000} seconds...`);
       setTimeout(() => connectDB(retries - 1, delay), delay);
     } else {
       console.error("❌ Could not connect to MongoDB after multiple attempts");
@@ -158,7 +161,7 @@ const startServer = async () => {
     // Graceful shutdown
     const gracefulShutdown = (signal) => {
       console.log(`\n🔄 Received ${signal}, shutting down gracefully...`);
-      
+
       server.close(() => {
         console.log("✅ HTTP server closed");
         mongoose.connection.close(false, () => {
