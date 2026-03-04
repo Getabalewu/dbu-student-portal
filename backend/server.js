@@ -27,13 +27,31 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? [
-          "https://dbu-student-portal-tpgv-5xjxck6cd-getabalewus-projects.vercel.app",
-          process.env.FRONTEND_URL || "https://your-frontend-domain.com"
-        ]
-        : ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl)
+      if (!origin) return callback(null, true);
+
+      const allowedOrigins = [
+        // Local development
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8080",
+        // Custom domain from env
+        process.env.FRONTEND_URL,
+      ].filter(Boolean);
+
+      // Allow any Vercel deployment URL (covers all preview and production deployments)
+      const isVercelUrl = /^https:\/\/.*\.vercel\.app$/.test(origin);
+      // Allow exact matches
+      const isAllowed = allowedOrigins.includes(origin);
+
+      if (isVercelUrl || isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked origin: ${origin}`);
+        callback(new Error(`CORS: Origin ${origin} not allowed`));
+      }
+    },
     credentials: true,
   })
 );

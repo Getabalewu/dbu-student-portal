@@ -26,6 +26,7 @@ class ApiService {
 
       if (!response.ok) {
         const error = new Error(data.message || `HTTP error! status: ${response.status}`);
+        error.status = response.status;
         error.response = { data };
         if (data.errors) {
           console.error('Validation errors:', data.errors);
@@ -35,7 +36,18 @@ class ApiService {
 
       return data;
     } catch (error) {
-      console.error(`API request failed: ${endpoint}`, error);
+      // Normalize TypeError (e.g. CORS / network failures) into a proper Error object
+      if (!(error instanceof Error)) {
+        const normalized = new Error('Network error or CORS issue. Please check the server.');
+        normalized.original = error;
+        throw normalized;
+      }
+      // TypeError with name 'TypeError' typically means network/CORS failure
+      if (error.name === 'TypeError' && !error.status) {
+        const normalized = new Error(`Network error: Unable to reach the server. (${endpoint})`);
+        normalized.original = error;
+        throw normalized;
+      }
       throw error;
     }
   }
