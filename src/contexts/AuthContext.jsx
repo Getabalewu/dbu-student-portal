@@ -17,13 +17,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
+    try {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) {
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+      }
+    } catch {
+      // Corrupted localStorage — clear it and start fresh
+      localStorage.removeItem("user");
     }
-
     setLoading(false);
   }, []);
 

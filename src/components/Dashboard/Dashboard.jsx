@@ -321,12 +321,13 @@ export function Dashboard() {
 			</motion.div>
 
 			{/* Error State */}
-			<AnimatePresence>
+			<AnimatePresence mode="wait">
 				{error && (
 					<motion.div
-						initial={{ opacity: 0, height: 0 }}
-						animate={{ opacity: 1, height: 'auto' }}
-						exit={{ opacity: 0, height: 0 }}
+						initial={{ opacity: 0, y: -10 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -10 }}
+						transition={{ duration: 0.2 }}
 						className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
 						<div className="flex items-center gap-3">
 							<AlertCircle className="w-5 h-5 text-red-500" />

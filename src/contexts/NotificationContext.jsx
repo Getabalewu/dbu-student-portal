@@ -21,13 +21,22 @@ export function NotificationProvider({ children }) {
     elections: 0,
   });
   const [lastSeen, setLastSeen] = useState(() => {
-    const saved = localStorage.getItem("lastSeenNotifications");
-    return saved ? JSON.parse(saved) : {
-      posts: Date.now(),
-      complaints: Date.now(),
-      clubs: Date.now(),
-      elections: Date.now(),
-    };
+    try {
+      const saved = localStorage.getItem("lastSeenNotifications");
+      return saved ? JSON.parse(saved) : {
+        posts: Date.now(),
+        complaints: Date.now(),
+        clubs: Date.now(),
+        elections: Date.now(),
+      };
+    } catch {
+      return {
+        posts: Date.now(),
+        complaints: Date.now(),
+        clubs: Date.now(),
+        elections: Date.now(),
+      };
+    }
   });
 
   const [newItems, setNewItems] = useState({

@@ -6,11 +6,15 @@ class ApiService {
   }
 
   getAuthHeaders() {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    return {
-      'Content-Type': 'application/json',
-      ...(user.token && { Authorization: `Bearer ${user.token}` })
-    };
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return {
+        'Content-Type': 'application/json',
+        ...(user.token && { Authorization: `Bearer ${user.token}` })
+      };
+    } catch {
+      return { 'Content-Type': 'application/json' };
+    }
   }
 
   async request(endpoint, options = {}) {
